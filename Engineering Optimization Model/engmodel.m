@@ -1,48 +1,60 @@
 function engmodel(csvin,sheet,output)
 %Engineering Optimization Model for SWOT
-%Version 1
+%Version 1.1
 %Saad Ali
+%
+%Version 1.1
+%-looks for columns containing 'ts_datetime', 'ts_frc1', 'hh_datetime',
+% and 'hh_frc1' instead of fixed column number
+%-relabeled graph filenames and titles with version and input filenames
+%-changed target FRC at household from 0.2 to 0.3 mg/L
+%-added in success rate on empirical backcheck graph
+
 clc
 format long
 pkg load statistics
 pkg load io
+version='1.1';
+inputfile=csvin(strfind(csvin,'\')+1:end);
 
-%read data
-##csv=csvread(csvin);
-##csv(1,:)=[];                  %delete header row
 [numdata strdata]=xlsread(csvin,sheet);
+timecol1=find(strcmp(strdata(1,:),'ts_datetime')==1);
+frccol1=find(strcmp(strdata(1,:),'ts_frc1')==1);
+timecol2=find(strcmp(strdata(1,:),'hh_datetime')==1);
+frccol2=find(strcmp(strdata(1,:),'hh_frc1')==1);
 for i=1:size(strdata,1)-1
-  if ~isempty(strdata{i+1,6})
-    hr=str2num(strdata{i+1,6}(12:13));
-    minute=str2num(strdata{i+1,6}(15:16));
-    second=str2num(strdata{i+1,6}(18:19));
+  if ~isempty(strdata{i+1,timecol1})
+    hr=str2num(strdata{i+1,timecol1}(12:13));
+    minute=str2num(strdata{i+1,timecol1}(15:16));
+    second=str2num(strdata{i+1,timecol1}(18:19));
     se1tfull(i)=hr+minute/60+second/3600; 
   else
     se1tfull(i)=-1;
   end
   
   
-  if ~isempty(strdata{i+1,30})
-    hr=str2num(strdata{i+1,30}(12:13));
-    minute=str2num(strdata{i+1,30}(15:16));
-    second=str2num(strdata{i+1,30}(18:19));
+  if ~isempty(strdata{i+1,timecol2})
+    hr=str2num(strdata{i+1,timecol2}(12:13));
+    minute=str2num(strdata{i+1,timecol2}(15:16));
+    second=str2num(strdata{i+1,timecol2}(18:19));
     se2tfull(i)=hr+minute/60+second/3600;
   else
     se2tfull(i)=-1;
   end
   
 end
-se1f=numdata(:,10);
-se2f=numdata(:,45);
+se1f=numdata(:,frccol1);
+se2f=numdata(:,frccol2);
 se1tfull=se1tfull';
 se2tfull=se2tfull';
 
 se1t=(se1tfull-se1tfull);
 se2t=(se2tfull-se1tfull);
+se2t(se2t<0)=se2t(se2t<0)+24;
 
 se1fsave=se1f;
 se2fsave=se2f;
-bad=se2fsave<=0 | se1fsave <=0 | isnan(se2fsave) | se1tfull<0 | se2tfull<0;
+bad=se2fsave<=0 | se1fsave <=0 | isnan(se2fsave) | se1tfull<0 | se2tfull<0 | se2t>15; %only look at data around 12h
 se1fsave=se1fsave(bad==0);
 se2fsave=se2fsave(bad==0);
 
@@ -127,8 +139,9 @@ for i=1:5
   sumres_FRC2_1(i)=sum(res(t>=4));
   resmod(i,:)=res.^2;
 
-  C10_1(i)=(0.2^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*10)^(1/(1-a_1(i,2)));
-  C24_1(i)=(0.2^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*24)^(1/(1-a_1(i,2)));
+  C12_1(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*12)^(1/(1-a_1(i,2)));
+  C15_1(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*15)^(1/(1-a_1(i,2)));
+  C24_1(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*24)^(1/(1-a_1(i,2)));
   
   %test set
   fpred_test=(f0_test.^(1-a_1(i,2))+(a_1(i,2)-1)*a_1(i,1)*t_test).^(1/(1-a_1(i,2)));
@@ -159,8 +172,9 @@ for i=1:5
   sumres_FRC2_1_test(i)=sum(res_test(t_test>=4));
   resmod_test(i,:)=res_test.^2;
 
-  C10_1_test(i)=(0.2^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*10)^(1/(1-a_1(i,2)));
-  C24_1_test(i)=(0.2^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*24)^(1/(1-a_1(i,2)));
+  C12_1_test(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*12)^(1/(1-a_1(i,2)));
+  C15_1_test(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*15)^(1/(1-a_1(i,2)));
+  C24_1_test(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*24)^(1/(1-a_1(i,2)));
 end
 
   kmax=3*round(100*a_1(i,1))/100;
@@ -171,12 +185,14 @@ end
       a2=(j-1)*kmax/300;   %0<k<kmax
       if a1==1
         fpred=f0_full.*exp(-a2*t_full);
-        C10(ii,j)=0.2/exp(-a2*10);
-        C24(ii,j)=0.2/exp(-a2*24);
+        C12(ii,j)=0.3/exp(-a2*12);
+        C15(ii,j)=0.3/exp(-a2*15);
+        C24(ii,j)=0.3/exp(-a2*24);
       else
         fpred=(f0_full.^(1-a1)+(a1-1)*a2*t_full).^(1/(1-a1));
-        C10(ii,j)=(0.2^(1-a1)-(a1-1)*a2*10)^(1/(1-a1));
-        C24(ii,j)=(0.2^(1-a1)-(a1-1)*a2*24)^(1/(1-a1));
+        C12(ii,j)=(0.3^(1-a1)-(a1-1)*a2*12)^(1/(1-a1));
+        C15(ii,j)=(0.3^(1-a1)-(a1-1)*a2*15)^(1/(1-a1));
+        C24(ii,j)=(0.3^(1-a1)-(a1-1)*a2*24)^(1/(1-a1));
       end
       fpred(fpred<0.03)=0.03;
       fpred(f0_full.^(1-a1)<-(a1-1)*a2*t_full)=0.03;
@@ -184,66 +200,86 @@ end
     end
   end
   
-  minsse=min(min(sse1));
-  C=C24(sse1<minsse*1.05);
-  minC24(1:5)=min(C);
-  maxC24(1:5)=max(C);
-  C2=C10(sse1<minsse*1.05);
-  minC10(1:5)=min(C2);
-  maxC10(1:5)=max(C2);
-  minpoint=find(C24==min(C));
-  minK=floor(minpoint/301)*kmax/300;
-  minN=mod(minpoint-1,301)*0.01;
-  maxpoint=find(C24==max(C));
-  maxK=floor(maxpoint/301)*kmax/300;
-  maxN=mod(maxpoint-1,301)*0.01;
-  optpoint=find(sse1==minsse);
-  optK=floor(optpoint/301)*kmax/300;
-  optN=mod(optpoint-1,301)*0.01;
+ minsse=min(min(sse1));
+ C=C24(sse1<minsse*1.05);
+ minC24(1:5)=min(C);
+ maxC24(1:5)=max(C);
+ C2=C12(sse1<minsse*1.05);
+ minC12(1:5)=min(C2);
+ maxC12(1:5)=max(C2);
+ C3=C15(sse1<minsse*1.05);
+ minC15(1:5)=min(C3);
+ maxC15(1:5)=max(C3);
+ minpoint=find(C12==min(C2));
+ minK=floor(minpoint/301)*kmax/300;
+ minN=mod(minpoint-1,301)*0.01;
+ maxpoint=find(C12==max(C2));
+ maxK=floor(maxpoint/301)*kmax/300;
+ maxN=mod(maxpoint-1,301)*0.01;
+ optpoint=find(sse1==minsse);
+ optK=floor(optpoint/301)*kmax/300;
+ optN=mod(optpoint-1,301)*0.01;
   
-  h=figure;
-  contour(0:kmax/300:kmax,0:0.01:3,sse1,minsse*[1.05:0.05:2])
-  hold on
-  xlabel('k (hr-1)')
-  ylabel('n (rate order)')
-  p(1)=plot(optK,optN,'kx');
-  p(2)=plot(minK,minN,'bx');
-  p(3)=plot(maxK,maxN,'rx');
-  legend([p(1) p(2) p(3)],'Optimum Solution','Minimum Prediction for C0','Maximum Prediction for C0','Location','northwest')
-  hold off
-  saveas (gcf,sprintf('%s/contour.png',output))
+ set(0,'DefaultTextInterpreter','none')
+ h=figure;
+ contour(0:kmax/300:kmax,0:0.01:3,sse1,minsse*[1.05:0.05:2])
+ hold on
+ xlabel('Decay Rate, k (hr-1)')
+ ylabel('Rate Order, n (dimensionless)')
+ p(1)=plot(optK,optN,'kx');
+ p(2)=plot(minK,minN,'bx');
+ p(3)=plot(maxK,maxN,'rx');
+ legend([p(1) p(2) p(3)],'Optimum Solution','Minimum Prediction for C0(t=12h)','Maximum Prediction for C0(t=12h)','Location','northwest')
+ title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputfile,version))
+ hold off
+ saveas (gcf,sprintf('%s/%s Contour.png',output,inputfile))
+  
+ ex1=sum(se1fsave>=0.2 & se1fsave<=0.5);
+ ex2=sum(se2fsave>=0.2 & se1fsave>=0.2 & se1fsave<=0.5);
+ expercent=ex2/ex1*100;
+ pr1=sum(se1fsave>=max(C2)-0.1 & se1fsave<=max(C2)+0.1); %max
+ pr2=sum(se2fsave>=0.2 & se1fsave>=max(C2)-0.1 & se1fsave<=max(C2)+0.1);
+ prpercent=pr2/pr1*100;
+ pr3=sum(se1fsave>=C12_1(1)-0.1 & se1fsave<=C12_1(1)+0.1); %opt
+ pr4=sum(se2fsave>=0.2 & se1fsave>=C12_1(1)-0.1 & se1fsave<=C12_1(1)+0.1);
+ prpercent2=pr4/pr3*100;
   
  h=figure;
  hold on
  maxFRC=round(max(se1f)*1.2*10)/10;
- plot(se1f,se2f,'o') 
- xlabel('FRC at Tapstand')
- ylabel('FRC at Household')
+ plot(se1fsave,se2fsave,'o','HandleVisibility','off') 
+ xlabel('FRC at Tapstand (mg/L)')
+ ylabel('FRC at Household (mg/L)')
  axis([0 maxFRC 0 maxFRC])
- plot([0 maxFRC],[0 maxFRC],'k-')
- plot([C24_1(1) C24_1(1)], [0 maxFRC],'g--')
- plot([max(C) max(C)], [0 maxFRC],'g--')
+ plot([0 maxFRC],[0 maxFRC],'k-','HandleVisibility','off')
  plot([0.2 0.2], [0 maxFRC],'r--')
- plot([0.5 0.5], [0 maxFRC],'r--')
- annotation('textbox',[0.31 0.8 0.1 0.1],'String',sprintf('Existing\nGuidelines'),'FontSize',8)
- annotation('textbox',[0.42 0.8 0.1 0.1],'String',sprintf('Proposed\nGuidelines'),'FontSize',8)
- plot([0 maxFRC],[0.2 0.2],'k--')
+ plot([0.5 0.5], [0 maxFRC],'r--','HandleVisibility','off')
+ plot([C12_1(1)-0.1 C12_1(1)-0.1], [0 maxFRC],'g--')
+ plot([C12_1(1)+0.1 C12_1(1)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
+ plot([max(C2)-0.1 max(C2)-0.1], [0 maxFRC],'b--')
+ plot([max(C2)+0.1 max(C2)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
+ annotation('textbox',[0.58 0.2 0.2 0.2],'String',sprintf('Existing = %3.0f of %3.0f = %3.1f%% success\nOptimum = %3.0f of %3.0f = %3.1f%% success\nMaximum = %3.0f of %3.0f = %3.1f%% success',ex2,ex1,expercent,pr4,pr3,prpercent2,pr2,pr1,prpercent),'FontSize',8)
+ plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
+ text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
+ title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at approx. 12h follow-up\nDataset: %s\nCode Version: %s',inputfile,version))
+ legend('Existing Guidelines, 0.2 - 0.5 mg/L',sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L',C12_1(1)-0.1,C12_1(1)+0.1),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L',max(C2)-0.1,max(C2)+0.1),'Location', 'NorthWest')
  grid on
  hold off
- saveas (gcf,sprintf('%s/backcheck.png',output))
+ saveas (gcf,sprintf('%s/%s Backcheck.png',output,inputfile))
  close all
  
- forxls=cell(11,15);
- forxls(1,:)={'','Initial guess for k','Initial guess for n','k','n','SSE','R2','Sum of residuals','Relative error','Minimum C(t=10h)','Optimum C(t=10h)','Maximum C(t=10h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
+ forxls=cell(11,18);
+ forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputfile,version),'Initial guess for k','Initial guess for n','k','n','SSE','R2','Sum of residuals','Relative error','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
  forxls(2)={'90% Training Set'};
  forxls(7)={'10% Test Set'};
  for i=1:5
-     forxls(1+i,2:15)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) sse_1(i) R2_1(i) sumres_1(i) SSR_1(i) minC10(i) C10_1(i) maxC10(i) minC24(i) C24_1(i) maxC24(i)};
-   forxls(6+i,2:15)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) sse_1_test(i) R2_1_test(i) sumres_1_test(i) SSR_1_test(i) minC10(i) C10_1_test(i) maxC10(i) minC24(i) C24_1_test(i) maxC24(i)};
+  forxls(1+i,2:18)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) sse_1(i) R2_1(i) sumres_1(i) SSR_1(i) minC12(i) C12_1(i) maxC12(i) minC15(i) C15_1(i) maxC15(i) minC24(i) C24_1(i) maxC24(i)};
+  forxls(6+i,2:18)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) sse_1_test(i) R2_1_test(i) sumres_1_test(i) SSR_1_test(i) minC12(i) C12_1_test(i) maxC12(i) minC15(i) C15_1_test(i) maxC15(i) minC24(i) C24_1_test(i) maxC24(i)};
  end
 
+ 
  %forxls=[k a_1 sse_1' R2_1' sumres_1' SSR_1' minC10' C10_1' maxC10' minC24' C24_1' maxC24'; k a_1 sse_1_test' R2_1_test' sumres_1_test' SSR_1_test' minC10' C10_1_test' maxC10' minC24' C24_1_test' maxC24'];
- xlswrite(sprintf('%s/Results.xlsx',output),forxls,'A1:S11');
+ xlswrite(sprintf('%s/%s Results.xlsx',output,inputfile),forxls,'A1:S11');
 end
 
 %looking at SSE for all points
