@@ -1,7 +1,9 @@
 function engmodel(csvin,sheet,output)
 %Engineering Optimization Model for SWOT
-%Version 1.1
 %Saad Ali
+%
+%Version 1.2
+%-added in function to look for 'ts_frc' if 'ts_frc1' not available in input file
 %
 %Version 1.1
 %-looks for columns containing 'ts_datetime', 'ts_frc1', 'hh_datetime',
@@ -14,14 +16,21 @@ clc
 format long
 pkg load statistics
 pkg load io
-version='1.1';
+version='1.2';
 inputfile=csvin(strfind(csvin,'\')+1:end);
 
 [numdata strdata]=xlsread(csvin,sheet);
 timecol1=find(strcmp(strdata(1,:),'ts_datetime')==1);
 frccol1=find(strcmp(strdata(1,:),'ts_frc1')==1);
+if isempty(frccol1)
+  frccol1=find(strcmp(strdata(1,:),'ts_frc')==1);
+end
 timecol2=find(strcmp(strdata(1,:),'hh_datetime')==1);
 frccol2=find(strcmp(strdata(1,:),'hh_frc1')==1);
+if isempty(frccol2)
+  frccol2=find(strcmp(strdata(1,:),'hh_frc')==1);
+end
+
 for i=1:size(strdata,1)-1
   if ~isempty(strdata{i+1,timecol1})
     hr=str2num(strdata{i+1,timecol1}(12:13));
