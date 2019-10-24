@@ -1,6 +1,10 @@
-function engmodel(csvin,sheet,output)
+function engmodel(csvin,output)
 %Engineering Optimization Model for SWOT
 %Saad Ali
+%
+%Version 1.3
+%-modified to allow .csv input
+%-removed required 'sheet' input
 %
 %Version 1.2
 %-added in function to look for 'ts_frc' if 'ts_frc1' not available in input file
@@ -16,44 +20,74 @@ clc
 format long
 pkg load statistics
 pkg load io
-version='1.2';
+version='1.3';
 inputfile=csvin(strfind(csvin,'\')+1:end);
 
-[numdata strdata]=xlsread(csvin,sheet);
-timecol1=find(strcmp(strdata(1,:),'ts_datetime')==1);
-frccol1=find(strcmp(strdata(1,:),'ts_frc1')==1);
-if isempty(frccol1)
-  frccol1=find(strcmp(strdata(1,:),'ts_frc')==1);
+if csvin(end-3:end)=='xlsx'
+  [numdata strdata alldata]=xlsread(csvin);
+  header=strdata(1,:);
+else
+  fid=fopen(csvin,'rt');
+  temp=csvread(csvin);
+  headercell=textscan(fid,'%s',size(temp,2),'Delimiter',',');
+  header=cell2mat(headercell);
 end
-timecol2=find(strcmp(strdata(1,:),'hh_datetime')==1);
-frccol2=find(strcmp(strdata(1,:),'hh_frc1')==1);
+  
+timecol1=find(strcmp(header,'ts_datetime'));
+frccol1=find(strcmp(header,'ts_frc1'));
+if isempty(frccol1)
+  frccol1=find(strcmp(header,'ts_frc'));
+end
+timecol2=find(strcmp(header,'hh_datetime'));
+frccol2=find(strcmp(header,'hh_frc1'));
 if isempty(frccol2)
-  frccol2=find(strcmp(strdata(1,:),'hh_frc')==1);
+  frccol2=find(strcmp(header,'hh_frc'));
 end
 
-for i=1:size(strdata,1)-1
-  if ~isempty(strdata{i+1,timecol1})
-    hr=str2num(strdata{i+1,timecol1}(12:13));
-    minute=str2num(strdata{i+1,timecol1}(15:16));
-    second=str2num(strdata{i+1,timecol1}(18:19));
+if csvin(end-3:end)=='xlsx'
+  data1=strdata(2:end,timecol1);
+  data2=[alldata{2:end,frccol1}]';
+  data3=strdata(2:end,timecol2);
+  data4=[alldata{2:end,frccol2}]';
+else
+  fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+  alldata=textscan(fid,fmt,'Delimiter',',');
+  alldata{1}(end)=[];
+  alldata{2}(end)=[];
+  alldata{3}(end)=[];
+  alldata{4}(end)=[];
+  alldata{1}{1}=['2' alldata{1}{1}];
+  data1=alldata{1};
+  data2=alldata{2};
+  data3=alldata{3};
+  data4=alldata{4};
+  fclose(fid);
+end
+  
+
+for i=1:size(data1,1)
+  if ~isempty(data1{i})
+    hr=str2num(data1{i}(12:13));
+    minute=str2num(data1{i}(15:16));
+    second=str2num(data1{i}(18:19));
     se1tfull(i)=hr+minute/60+second/3600; 
   else
     se1tfull(i)=-1;
   end
   
   
-  if ~isempty(strdata{i+1,timecol2})
-    hr=str2num(strdata{i+1,timecol2}(12:13));
-    minute=str2num(strdata{i+1,timecol2}(15:16));
-    second=str2num(strdata{i+1,timecol2}(18:19));
+  if ~isempty(data3{i})
+    hr=str2num(data3{i}(12:13));
+    minute=str2num(data3{i}(15:16));
+    second=str2num(data3{i}(18:19));
     se2tfull(i)=hr+minute/60+second/3600;
   else
     se2tfull(i)=-1;
   end
   
 end
-se1f=numdata(:,frccol1);
-se2f=numdata(:,frccol2);
+se1f=data2;
+se2f=data4;
 se1tfull=se1tfull';
 se2tfull=se2tfull';
 
