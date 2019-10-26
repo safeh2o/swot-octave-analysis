@@ -23,12 +23,7 @@ pkg load statistics
 pkg load io
 version='1.3';
 
-[inputFileDir, inputFileName, inputFileExt] = fileparts(inputfile)
-
-inputfile=csvin(strfind(csvin,'\')+1:end);
-if isempty(inputfile)
-  inputfile=csvin(strfind(csvin,'/')+1:end);
-end
+[inputFileDir, inputFileName, inputFileExt] = fileparts(csvin)
 
 if csvin(end-3:end)=='xlsx'
   [numdata strdata alldata]=xlsread(csvin);
