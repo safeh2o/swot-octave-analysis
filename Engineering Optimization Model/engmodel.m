@@ -6,6 +6,7 @@ function engmodel(csvin,output)
 %-modified to allow .csv input
 %-removed required 'sheet' input
 %
+%
 %Version 1.2
 %-added in function to look for 'ts_frc' if 'ts_frc1' not available in input file
 %
@@ -22,6 +23,9 @@ pkg load statistics
 pkg load io
 version='1.3';
 inputfile=csvin(strfind(csvin,'\')+1:end);
+if isempty(inputfile)
+  inputfile=csvin(strfind(csvin,'/')+1:end);
+end
 
 if csvin(end-3:end)=='xlsx'
   [numdata strdata alldata]=xlsread(csvin);
@@ -56,7 +60,9 @@ else
   alldata{2}(end)=[];
   alldata{3}(end)=[];
   alldata{4}(end)=[];
-  alldata{1}{1}=['2' alldata{1}{1}];
+  if alldata{1}{1}(1:3)=='019'
+    alldata{1}{1}=['2' alldata{1}{1}];
+  end
   data1=alldata{1};
   data2=alldata{2};
   data3=alldata{3};
