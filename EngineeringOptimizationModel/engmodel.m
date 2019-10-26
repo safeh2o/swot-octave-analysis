@@ -22,6 +22,9 @@ format long
 pkg load statistics
 pkg load io
 version='1.3';
+
+[inputFileDir, inputFileName, inputFileExt] = fileparts(inputfile)
+
 inputfile=csvin(strfind(csvin,'\')+1:end);
 if isempty(inputfile)
   inputfile=csvin(strfind(csvin,'/')+1:end);
@@ -279,9 +282,9 @@ end
  p(2)=plot(minK,minN,'bx');
  p(3)=plot(maxK,maxN,'rx');
  legend([p(1) p(2) p(3)],'Optimum Solution','Minimum Prediction for C0(t=12h)','Maximum Prediction for C0(t=12h)','Location','northwest')
- title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputfile,version))
+ title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputFileName,version))
  hold off
- saveas (gcf,sprintf('%s/%s Contour.png',output,inputfile))
+ saveas (gcf,sprintf('%s/%s Contour.png',output,inputFileName))
   
  ex1=sum(se1fsave>=0.2 & se1fsave<=0.5);
  ex2=sum(se2fsave>=0.2 & se1fsave>=0.2 & se1fsave<=0.5);
@@ -310,15 +313,15 @@ end
  annotation('textbox',[0.58 0.2 0.2 0.2],'String',sprintf('Existing = %3.0f of %3.0f = %3.1f%% success\nOptimum = %3.0f of %3.0f = %3.1f%% success\nMaximum = %3.0f of %3.0f = %3.1f%% success',ex2,ex1,expercent,pr4,pr3,prpercent2,pr2,pr1,prpercent),'FontSize',8)
  plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
  text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
- title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at approx. 12h follow-up\nDataset: %s\nCode Version: %s',inputfile,version))
+ title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at approx. 12h follow-up\nDataset: %s\nCode Version: %s',inputFileName,version))
  legend('Existing Guidelines, 0.2 - 0.5 mg/L',sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L',C12_1(1)-0.1,C12_1(1)+0.1),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L',max(C2)-0.1,max(C2)+0.1),'Location', 'NorthWest')
  grid on
  hold off
- saveas (gcf,sprintf('%s/%s Backcheck.png',output,inputfile))
+ saveas (gcf,sprintf('%s/%s Backcheck.png',output,inputFileName))
  close all
  
  forxls=cell(11,18);
- forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputfile,version),'Initial guess for k','Initial guess for n','k','n','SSE','R2','Sum of residuals','Relative error','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
+ forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName,version),'Initial guess for k','Initial guess for n','k','n','SSE','R2','Sum of residuals','Relative error','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
  forxls(2)={'90% Training Set'};
  forxls(7)={'10% Test Set'};
  for i=1:5
@@ -328,7 +331,7 @@ end
 
  
  %forxls=[k a_1 sse_1' R2_1' sumres_1' SSR_1' minC10' C10_1' maxC10' minC24' C24_1' maxC24'; k a_1 sse_1_test' R2_1_test' sumres_1_test' SSR_1_test' minC10' C10_1_test' maxC10' minC24' C24_1_test' maxC24'];
- xlswrite(sprintf('%s/%s Results.xlsx',output,inputfile),forxls,'A1:S11');
+ xlswrite(sprintf('%s/%s Results.xlsx',output,inputFileName),forxls,'A1:S11');
 end
 
 %looking at SSE for all points
