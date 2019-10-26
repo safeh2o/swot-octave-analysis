@@ -279,7 +279,7 @@ end
  legend([p(1) p(2) p(3)],'Optimum Solution','Minimum Prediction for C0(t=12h)','Maximum Prediction for C0(t=12h)','Location','northwest')
  title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputFileName,version))
  hold off
- saveas (gcf,sprintf('%s/%s Contour.png',output,inputFileName))
+ saveas (gcf,sprintf('%s/%s_Contour.png',output,inputFileName))
   
  ex1=sum(se1fsave>=0.2 & se1fsave<=0.5);
  ex2=sum(se2fsave>=0.2 & se1fsave>=0.2 & se1fsave<=0.5);
@@ -312,7 +312,7 @@ end
  legend('Existing Guidelines, 0.2 - 0.5 mg/L',sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L',C12_1(1)-0.1,C12_1(1)+0.1),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L',max(C2)-0.1,max(C2)+0.1),'Location', 'NorthWest')
  grid on
  hold off
- saveas (gcf,sprintf('%s/%s Backcheck.png',output,inputFileName))
+ saveas (gcf,sprintf('%s/%s_Backcheck.png',output,inputFileName))
  close all
  
  forxls=cell(11,18);
@@ -326,7 +326,7 @@ end
 
  
  %forxls=[k a_1 sse_1' R2_1' sumres_1' SSR_1' minC10' C10_1' maxC10' minC24' C24_1' maxC24'; k a_1 sse_1_test' R2_1_test' sumres_1_test' SSR_1_test' minC10' C10_1_test' maxC10' minC24' C24_1_test' maxC24'];
- xlswrite(sprintf('%s/%s Results.xlsx',output,inputFileName),forxls,'A1:S11');
+ xlswrite(sprintf('%s/%s_Results.xlsx',output,inputFileName),forxls,'A1:S11');
 end
 
 %looking at SSE for all points
