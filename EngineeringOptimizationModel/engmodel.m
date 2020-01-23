@@ -2,10 +2,16 @@ function engmodel(csvin,output)
 %Engineering Optimization Model for SWOT
 %Saad Ali
 %
+%Version 1.4
+%-corrected how missing data is handled when reading xlsx files
+%-corrected issue causing data to be skipped when reading csv files
+%-changed graphical details of backcheck graph
+%-added output for number of points used in backcheck graphs to graph title
+%-added output for number of points used in optimization to spreadsheet output
+%
 %Version 1.3
 %-modified to allow .csv input
 %-removed required 'sheet' input
-%
 %
 %Version 1.2
 %-added in function to look for 'ts_frc' if 'ts_frc1' not available in input file
@@ -21,13 +27,14 @@ clc
 format long
 pkg load statistics
 pkg load io
-version='1.3';
+version='1.4';
 
 [inputFileDir, inputFileName, inputFileExt] = fileparts(csvin)
 
-if csvin(end-3:end)=='xlsx'
+if inputFileExt=='.xlsx'
   [numdata strdata alldata]=xlsread(csvin);
   header=strdata(1,:);
+  alldata(cellfun(@isempty,alldata))=-1;
 else
   fid=fopen(csvin,'rt');
   temp=csvread(csvin);
@@ -46,13 +53,14 @@ if isempty(frccol2)
   frccol2=find(strcmp(header,'hh_frc'));
 end
 
-if csvin(end-3:end)=='xlsx'
+if inputFileExt=='.xlsx'
   data1=strdata(2:end,timecol1);
   data2=[alldata{2:end,frccol1}]';
   data3=strdata(2:end,timecol2);
   data4=[alldata{2:end,frccol2}]';
 else
-  fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+##  fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+  fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f'];
   alldata=textscan(fid,fmt,'Delimiter',',');
   alldata{1}(end)=[];
   alldata{2}(end)=[];
@@ -99,11 +107,12 @@ se1t=(se1tfull-se1tfull);
 se2t=(se2tfull-se1tfull);
 se2t(se2t<0)=se2t(se2t<0)+24;
 
-se1fsave=se1f;
-se2fsave=se2f;
-bad=se2fsave<=0 | se1fsave <=0 | isnan(se2fsave) | se1tfull<0 | se2tfull<0 | se2t>15; %only look at data around 12h
-se1fsave=se1fsave(bad==0);
-se2fsave=se2fsave(bad==0);
+lowtime=4;
+hightime=15;
+bad2=se2f<=0 | se1f <=0 | isnan(se2f) | se1tfull<0 | se2tfull<0 | se2t<lowtime | se2t>hightime; %only look at data around 12h
+se1fsave=se1f(bad2==0);
+se2fsave=se2f(bad2==0);
+se2tsave=se2t(bad2==0);
 
 f01=se1f;
 f02=se1f;
@@ -111,7 +120,7 @@ f02=se1f;
 %builds a vector of elements that need to be removed from each measurement time
 %checks if any concentration is greater than FRC1 by 0.05 and 5%
 %also checks if concentrations or times are negative (ie. blank) to remove those elements
-bad=se2f>se1f+0.03 | se2f<=0 | se2t<=0 | isnan(se2f) | isnan(se1f);
+bad=se2f>se1f+0.03 | se2f<=0 | se1tfull<0 | se2tfull<0 | se2t<=0 | isnan(se2f) | isnan(se1f);
 
 %remove all previously determined bad elements from each pair of vectors
 se1t=se1t(bad==0);
@@ -305,23 +314,22 @@ end
  plot([C12_1(1)+0.1 C12_1(1)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
  plot([max(C2)-0.1 max(C2)-0.1], [0 maxFRC],'b--')
  plot([max(C2)+0.1 max(C2)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
- annotation('textbox',[0.58 0.2 0.2 0.2],'String',sprintf('Existing = %3.0f of %3.0f = %3.1f%% success\nOptimum = %3.0f of %3.0f = %3.1f%% success\nMaximum = %3.0f of %3.0f = %3.1f%% success',ex2,ex1,expercent,pr4,pr3,prpercent2,pr2,pr1,prpercent),'FontSize',8)
  plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
  text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
- title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at approx. 12h follow-up\nDataset: %s\nCode Version: %s',inputFileName,version))
- legend('Existing Guidelines, 0.2 - 0.5 mg/L',sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L',C12_1(1)-0.1,C12_1(1)+0.1),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L',max(C2)-0.1,max(C2)+0.1),'Location', 'NorthWest')
+ title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at %d-%dh follow-up (average %2.1fh, n=%d)\nDataset: %s\nCode Version: %s',lowtime,hightime,mean(se2tsave),length(se2tsave),inputFileName,version))
+ legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',C12_1(1)-0.1,C12_1(1)+0.1,pr4,pr3,prpercent2),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(C2)-0.1,max(C2)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest')
  grid on
  hold off
  saveas (gcf,sprintf('%s/%s_Backcheck.png',output,inputFileName))
  close all
  
- forxls=cell(11,18);
- forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName,version),'Initial guess for k','Initial guess for n','k','n','SSE','R2','Sum of residuals','Relative error','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
+ forxls=cell(11,19);
+ forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName,version),'Initial guess for k','Initial guess for n','k','n','Number of points used','SSE','R2','Sum of residuals','Relative error','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
  forxls(2)={'90% Training Set'};
  forxls(7)={'10% Test Set'};
  for i=1:5
-  forxls(1+i,2:18)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) sse_1(i) R2_1(i) sumres_1(i) SSR_1(i) minC12(i) C12_1(i) maxC12(i) minC15(i) C15_1(i) maxC15(i) minC24(i) C24_1(i) maxC24(i)};
-  forxls(6+i,2:18)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) sse_1_test(i) R2_1_test(i) sumres_1_test(i) SSR_1_test(i) minC12(i) C12_1_test(i) maxC12(i) minC15(i) C15_1_test(i) maxC15(i) minC24(i) C24_1_test(i) maxC24(i)};
+  forxls(1+i,2:19)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) length(se1t) sse_1(i) R2_1(i) sumres_1(i) SSR_1(i) minC12(i) C12_1(i) maxC12(i) minC15(i) C15_1(i) maxC15(i) minC24(i) C24_1(i) maxC24(i)};
+  forxls(6+i,2:19)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) length(se1t) sse_1_test(i) R2_1_test(i) sumres_1_test(i) SSR_1_test(i) minC12(i) C12_1_test(i) maxC12(i) minC15(i) C15_1_test(i) maxC15(i) minC24(i) C24_1_test(i) maxC24(i)};
  end
 
  
