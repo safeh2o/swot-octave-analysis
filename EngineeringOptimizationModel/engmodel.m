@@ -1,6 +1,8 @@
 function engmodel(csvin,output)
 %Engineering Optimization Model for SWOT
 %Saad Ali
+%Version 1.5
+%-corrected how missing data is handled when reading csv files
 %
 %Version 1.4
 %-corrected how missing data is handled when reading xlsx files
@@ -27,11 +29,11 @@ clc
 format long
 pkg load statistics
 pkg load io
-version='1.4';
+version='1.5';
 
 [inputFileDir, inputFileName, inputFileExt] = fileparts(csvin)
 
-if inputFileExt=='.xlsx'
+if strcmp(inputFileExt,'.xlsx')
   [numdata strdata alldata]=xlsread(csvin);
   header=strdata(1,:);
   alldata(cellfun(@isempty,alldata))=-1;
@@ -53,22 +55,19 @@ if isempty(frccol2)
   frccol2=find(strcmp(header,'hh_frc'));
 end
 
-if inputFileExt=='.xlsx'
+if strcmp(inputFileExt,'.xlsx')
   data1=strdata(2:end,timecol1);
   data2=[alldata{2:end,frccol1}]';
   data3=strdata(2:end,timecol2);
   data4=[alldata{2:end,frccol2}]';
 else
-##  fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+  %fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
   fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f'];
-  alldata=textscan(fid,fmt,'Delimiter',',');
+  alldata=textscan(fid,fmt,'Delimiter',',','EndOfLine','\n');
   alldata{1}(end)=[];
   alldata{2}(end)=[];
   alldata{3}(end)=[];
   alldata{4}(end)=[];
-  if alldata{1}{1}(1:3)=='019'
-    alldata{1}{1}=['2' alldata{1}{1}];
-  end
   data1=alldata{1};
   data2=alldata{2};
   data3=alldata{3};
@@ -79,9 +78,10 @@ end
 
 for i=1:size(data1,1)
   if ~isempty(data1{i})
-    hr=str2num(data1{i}(12:13));
-    minute=str2num(data1{i}(15:16));
-    second=str2num(data1{i}(18:19));
+    timestart=find(data1{i}=='T');
+    hr=str2num(data1{i}(timestart+1:timestart+2));
+    minute=str2num(data1{i}(timestart+4:timestart+5));
+    second=str2num(data1{i}(timestart+7:timestart+8));
     se1tfull(i)=hr+minute/60+second/3600; 
   else
     se1tfull(i)=-1;
@@ -89,9 +89,10 @@ for i=1:size(data1,1)
   
   
   if ~isempty(data3{i})
-    hr=str2num(data3{i}(12:13));
-    minute=str2num(data3{i}(15:16));
-    second=str2num(data3{i}(18:19));
+    timestart=find(data3{i}=='T');
+    hr=str2num(data3{i}(timestart+1:timestart+2));
+    minute=str2num(data3{i}(timestart+4:timestart+5));
+    second=str2num(data3{i}(timestart+7:timestart+8));
     se2tfull(i)=hr+minute/60+second/3600;
   else
     se2tfull(i)=-1;
