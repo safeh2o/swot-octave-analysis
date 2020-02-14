@@ -1,15 +1,16 @@
-function engmodel(csvin,output)
+function engmodel(filein,output,inputtime,varargin)
 %Engineering Optimization Model for SWOT
 %Saad Ali
-%Version 1.5
-%-corrected how missing data is handled when reading csv files
-%
+
 %Version 1.4
 %-corrected how missing data is handled when reading xlsx files
 %-corrected issue causing data to be skipped when reading csv files
 %-changed graphical details of backcheck graph
 %-added output for number of points used in backcheck graphs to graph title
 %-added output for number of points used in optimization to spreadsheet output
+%-corrected how missing data is handled when reading csv files
+%-added functionality for variable number of inputs
+%-added functionality for input of time to be optimized for
 %
 %Version 1.3
 %-modified to allow .csv input
@@ -29,17 +30,28 @@ clc
 format long
 pkg load statistics
 pkg load io
-version='1.5';
+version='1.4';
 
-[inputFileDir, inputFileName, inputFileExt] = fileparts(csvin)
+if nargin==0
+    sprintf('Require input file path')
+    return
+end
+if nargin<2
+  output='Output';
+end
+if nargin<3
+  inputtime=12;
+end
+
+[inputFileDir, inputFileName, inputFileExt] = fileparts(filein)
 
 if strcmp(inputFileExt,'.xlsx')
-  [numdata strdata alldata]=xlsread(csvin);
+  [numdata strdata alldata]=xlsread(filein);
   header=strdata(1,:);
   alldata(cellfun(@isempty,alldata))=-1;
 else
-  fid=fopen(csvin,'rt');
-  temp=csvread(csvin);
+  fid=fopen(filein,'rt');
+  temp=csvread(filein);
   headercell=textscan(fid,'%s',size(temp,2),'Delimiter',',');
   header=cell2mat(headercell);
 end
@@ -108,8 +120,8 @@ se1t=(se1tfull-se1tfull);
 se2t=(se2tfull-se1tfull);
 se2t(se2t<0)=se2t(se2t<0)+24;
 
-lowtime=4;
-hightime=15;
+lowtime=inputtime-3;
+hightime=inputtime+3;
 bad2=se2f<=0 | se1f <=0 | isnan(se2f) | se1tfull<0 | se2tfull<0 | se2t<lowtime | se2t>hightime; %only look at data around 12h
 se1fsave=se1f(bad2==0);
 se2fsave=se2f(bad2==0);
@@ -196,9 +208,12 @@ for i=1:5
   sumres_FRC2_1(i)=sum(res(t>=4));
   resmod(i,:)=res.^2;
 
+  C6_1(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*6)^(1/(1-a_1(i,2)));
   C12_1(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*12)^(1/(1-a_1(i,2)));
   C15_1(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*15)^(1/(1-a_1(i,2)));
+  C18_1(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*18)^(1/(1-a_1(i,2)));
   C24_1(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*24)^(1/(1-a_1(i,2)));
+  Cin_1(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*inputtime)^(1/(1-a_1(i,2)));
   
   %test set
   fpred_test=(f0_test.^(1-a_1(i,2))+(a_1(i,2)-1)*a_1(i,1)*t_test).^(1/(1-a_1(i,2)));
@@ -229,9 +244,12 @@ for i=1:5
   sumres_FRC2_1_test(i)=sum(res_test(t_test>=4));
   resmod_test(i,:)=res_test.^2;
 
+  C6_1_test(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*6)^(1/(1-a_1(i,2)));
   C12_1_test(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*12)^(1/(1-a_1(i,2)));
   C15_1_test(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*15)^(1/(1-a_1(i,2)));
+  C18_1_test(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*18)^(1/(1-a_1(i,2)));
   C24_1_test(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*24)^(1/(1-a_1(i,2)));
+  Cin_1_test(i)=(0.3^(1-a_1(i,2))-(a_1(i,2)-1)*a_1(i,1)*inputtime)^(1/(1-a_1(i,2)));
 end
 
   kmax=3*round(100*a_1(i,1))/100;
@@ -242,17 +260,22 @@ end
       a2=(j-1)*kmax/300;   %0<k<kmax
       if a1==1
         fpred=f0_full.*exp(-a2*t_full);
+        C6(ii,j)=0.3/exp(-a2*6);
         C12(ii,j)=0.3/exp(-a2*12);
         C15(ii,j)=0.3/exp(-a2*15);
+        C18(ii,j)=0.3/exp(-a2*18);
         C24(ii,j)=0.3/exp(-a2*24);
+        Cin(ii,j)=0.3/exp(-a2*inputtime);
       else
         fpred=(f0_full.^(1-a1)+(a1-1)*a2*t_full).^(1/(1-a1));
+        C6(ii,j)=(0.3^(1-a1)-(a1-1)*a2*6)^(1/(1-a1));
         C12(ii,j)=(0.3^(1-a1)-(a1-1)*a2*12)^(1/(1-a1));
         C15(ii,j)=(0.3^(1-a1)-(a1-1)*a2*15)^(1/(1-a1));
+        C18(ii,j)=(0.3^(1-a1)-(a1-1)*a2*18)^(1/(1-a1));
         C24(ii,j)=(0.3^(1-a1)-(a1-1)*a2*24)^(1/(1-a1));
+        Cin(ii,j)=(0.3^(1-a1)-(a1-1)*a2*inputtime)^(1/(1-a1));
       end
-      fpred(fpred<0.03)=0.03;
-      fpred(f0_full.^(1-a1)<-(a1-1)*a2*t_full)=0.03;
+      fpred(f0_full.^(1-a1)<-(a1-1)*a2*t_full)=0;
       sse1(ii,j)=sum((f_full-fpred).^2);
     end
   end
@@ -261,16 +284,26 @@ end
  C=C24(sse1<minsse*1.05);
  minC24(1:5)=min(C);
  maxC24(1:5)=max(C);
- C2=C12(sse1<minsse*1.05);
- minC12(1:5)=min(C2);
- maxC12(1:5)=max(C2);
- C3=C15(sse1<minsse*1.05);
- minC15(1:5)=min(C3);
- maxC15(1:5)=max(C3);
- minpoint=find(C12==min(C2));
+ C6_good=C6(sse1<minsse*1.05);
+ minC6(1:5)=min(C6_good);
+ maxC6(1:5)=max(C6_good);
+ C12_good=C12(sse1<minsse*1.05);
+ minC12(1:5)=min(C12_good);
+ maxC12(1:5)=max(C12_good);
+ C15_good=C15(sse1<minsse*1.05);
+ minC15(1:5)=min(C15_good);
+ maxC15(1:5)=max(C15_good);
+ C18_good=C18(sse1<minsse*1.05);
+ minC18(1:5)=min(C18_good);
+ maxC18(1:5)=max(C18_good);
+ Cin_good=Cin(sse1<minsse*1.05);
+ minCin(1:5)=min(Cin_good);
+ maxCin(1:5)=max(Cin_good);
+ 
+ minpoint=find(C12==min(C12_good));
  minK=floor(minpoint/301)*kmax/300;
  minN=mod(minpoint-1,301)*0.01;
- maxpoint=find(C12==max(C2));
+ maxpoint=find(C12==max(C12_good));
  maxK=floor(maxpoint/301)*kmax/300;
  maxN=mod(maxpoint-1,301)*0.01;
  optpoint=find(sse1==minsse);
@@ -293,13 +326,26 @@ end
   
  ex1=sum(se1fsave>=0.2 & se1fsave<=0.5);
  ex2=sum(se2fsave>=0.2 & se1fsave>=0.2 & se1fsave<=0.5);
- expercent=ex2/ex1*100;
- pr1=sum(se1fsave>=max(C2)-0.1 & se1fsave<=max(C2)+0.1); %max
- pr2=sum(se2fsave>=0.2 & se1fsave>=max(C2)-0.1 & se1fsave<=max(C2)+0.1);
- prpercent=pr2/pr1*100;
- pr3=sum(se1fsave>=C12_1(1)-0.1 & se1fsave<=C12_1(1)+0.1); %opt
- pr4=sum(se2fsave>=0.2 & se1fsave>=C12_1(1)-0.1 & se1fsave<=C12_1(1)+0.1);
- prpercent2=pr4/pr3*100;
+ if ex1>0
+  expercent=ex2/ex1*100;
+ else
+  expercent=0;
+ end
+ pr1=sum(se1fsave>=max(Cin_good)-0.1 & se1fsave<=max(Cin_good)+0.1); %max
+ pr2=sum(se2fsave>=0.2 & se1fsave>=max(Cin_good)-0.1 & se1fsave<=max(Cin_good)+0.1);
+ if pr1>0
+  prpercent=pr2/pr1*100;
+ else
+  prpercent=0;
+ end
+ [i ii]=find(max(R2_1));
+ pr3=sum(se1fsave>=Cin_1(ii)-0.1 & se1fsave<=Cin_1(ii)+0.1); %opt
+ pr4=sum(se2fsave>=0.2 & se1fsave>=Cin_1(ii)-0.1 & se1fsave<=Cin_1(ii)+0.1);
+ if pr3>0
+  prpercent2=pr4/pr3*100;
+ else
+  prpercent2=0;
+ end
   
  h=figure;
  hold on
@@ -311,31 +357,30 @@ end
  plot([0 maxFRC],[0 maxFRC],'k-','HandleVisibility','off')
  plot([0.2 0.2], [0 maxFRC],'r--')
  plot([0.5 0.5], [0 maxFRC],'r--','HandleVisibility','off')
- plot([C12_1(1)-0.1 C12_1(1)-0.1], [0 maxFRC],'g--')
- plot([C12_1(1)+0.1 C12_1(1)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
- plot([max(C2)-0.1 max(C2)-0.1], [0 maxFRC],'b--')
- plot([max(C2)+0.1 max(C2)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
+ plot([Cin_1(ii)-0.1 Cin_1(ii)-0.1], [0 maxFRC],'g--')
+ plot([Cin_1(ii)+0.1 Cin_1(ii)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
+ plot([max(Cin_good)-0.1 max(Cin_good)-0.1], [0 maxFRC],'b--')
+ plot([max(Cin_good)+0.1 max(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
  plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
  text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
  title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at %d-%dh follow-up (average %2.1fh, n=%d)\nDataset: %s\nCode Version: %s',lowtime,hightime,mean(se2tsave),length(se2tsave),inputFileName,version))
- legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',C12_1(1)-0.1,C12_1(1)+0.1,pr4,pr3,prpercent2),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(C2)-0.1,max(C2)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest')
+ legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(C12_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest')
  grid on
  hold off
  saveas (gcf,sprintf('%s/%s_Backcheck.png',output,inputFileName))
  close all
  
- forxls=cell(11,19);
- forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName,version),'Initial guess for k','Initial guess for n','k','n','Number of points used','SSE','R2','Sum of residuals','Relative error','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
+ forxls=cell(11,28);
+ forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName,version),'Initial guess for k','Initial guess for n','k','n','Number of points used','SSE','R2','Sum of residuals','Relative error','Minimum C(t=6h)','Optimum C(t=6h)','Maximum C(t=6h)','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=18h)','Optimum C(t=18h)','Maximum C(t=18h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)',sprintf('Minimum C(t=%dh)',inputtime),sprintf('Optimum C(t=%dh)',inputtime),sprintf('Maximum C(t=%dh)',inputtime)};
  forxls(2)={'90% Training Set'};
  forxls(7)={'10% Test Set'};
  for i=1:5
-  forxls(1+i,2:19)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) length(se1t) sse_1(i) R2_1(i) sumres_1(i) SSR_1(i) minC12(i) C12_1(i) maxC12(i) minC15(i) C15_1(i) maxC15(i) minC24(i) C24_1(i) maxC24(i)};
-  forxls(6+i,2:19)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) length(se1t) sse_1_test(i) R2_1_test(i) sumres_1_test(i) SSR_1_test(i) minC12(i) C12_1_test(i) maxC12(i) minC15(i) C15_1_test(i) maxC15(i) minC24(i) C24_1_test(i) maxC24(i)};
+  forxls(1+i,2:28)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) length(se1t) sse_1(i) R2_1(i) sumres_1(i) SSR_1(i) minC6(i) C6_1(i) maxC6(i) minC12(i) C12_1(i) maxC12(i) minC15(i) C15_1(i) maxC15(i) minC18(i) C18_1(i) maxC18(i) minC24(i) C24_1(i) maxC24(i) minCin(i) Cin_1(i) maxCin(i)};
+  forxls(6+i,2:28)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) length(se1t) sse_1_test(i) R2_1_test(i) sumres_1_test(i) SSR_1_test(i) minC6(i) C6_1_test(i) maxC6(i) minC12(i) C12_1_test(i) maxC12(i) minC15(i) C15_1_test(i) maxC15(i) minC18(i) C18_1_test(i) maxC18(i) minC24(i) C24_1_test(i) maxC24(i) minCin(i) Cin_1_test(i) maxCin(i)};
  end
 
  
- %forxls=[k a_1 sse_1' R2_1' sumres_1' SSR_1' minC10' C10_1' maxC10' minC24' C24_1' maxC24'; k a_1 sse_1_test' R2_1_test' sumres_1_test' SSR_1_test' minC10' C10_1_test' maxC10' minC24' C24_1_test' maxC24'];
- xlswrite(sprintf('%s/%s_Results.xlsx',output,inputFileName),forxls,'A1:S11');
+ xlswrite(sprintf('%s/%s_Results.xlsx',output,inputFileName),forxls,'A1:AB11');
 end
 
 %looking at SSE for all points
