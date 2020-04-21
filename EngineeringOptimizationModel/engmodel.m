@@ -11,6 +11,7 @@ function engmodel(filein,output,inputtime,varargin)
 %-corrected how missing data is handled when reading csv files
 %-added functionality for variable number of inputs
 %-added functionality for input of time to be optimized for
+%-added functionality to read 'date' format time rather than 'string' format in xls and csv
 %
 %Version 1.3
 %-modified to allow .csv input
@@ -72,44 +73,61 @@ if strcmp(inputFileExt,'.xlsx')
   data2=[alldata{2:end,frccol1}]';
   data3=strdata(2:end,timecol2);
   data4=[alldata{2:end,frccol2}]';
+  if isempty(data1)
+    data1=[alldata{2:end,timecol1}]';
+  end
+  if isempty(data3)
+    data3=[alldata{2:end,timecol2}]';
+  end
 else
-  %fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
-  fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f'];
+  if temp(2,1)<3000
+    fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+  else
+    fmt = [repmat('%*s',1,timecol1-1) '%f' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%f' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+  end
+  %fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f'];
   alldata=textscan(fid,fmt,'Delimiter',',','EndOfLine','\n');
-  alldata{1}(end)=[];
-  alldata{2}(end)=[];
-  alldata{3}(end)=[];
-  alldata{4}(end)=[];
   data1=alldata{1};
   data2=alldata{2};
   data3=alldata{3};
   data4=alldata{4};
+  if isa(data1,'float')
+    if data1(1)<4000
+      data1(1)=data1(1)+40000;
+    end
+  end
   fclose(fid);
 end
   
-
+  
 for i=1:size(data1,1)
-  if ~isempty(data1{i})
-    timestart=find(data1{i}=='T');
-    hr=str2num(data1{i}(timestart+1:timestart+2));
-    minute=str2num(data1{i}(timestart+4:timestart+5));
-    second=str2num(data1{i}(timestart+7:timestart+8));
-    se1tfull(i)=hr+minute/60+second/3600; 
-  else
-    se1tfull(i)=-1;
+  if isa(data1,'float')
+    se1tfull(i)=data1(i)*24;
+  else  
+    if ~isempty(data1{i})
+      timestart=find(data1{i}=='T');
+      hr=str2num(data1{i}(timestart+1:timestart+2));
+      minute=str2num(data1{i}(timestart+4:timestart+5));
+      second=str2num(data1{i}(timestart+7:timestart+8));
+      se1tfull(i)=hr+minute/60+second/3600; 
+    else
+      se1tfull(i)=-1;
+    end
   end
   
-  
-  if ~isempty(data3{i})
-    timestart=find(data3{i}=='T');
-    hr=str2num(data3{i}(timestart+1:timestart+2));
-    minute=str2num(data3{i}(timestart+4:timestart+5));
-    second=str2num(data3{i}(timestart+7:timestart+8));
-    se2tfull(i)=hr+minute/60+second/3600;
-  else
-    se2tfull(i)=-1;
+  if isa(data3,'float')
+    se2tfull(i)=data3(i)*24;
+  else  
+    if ~isempty(data3{i})
+      timestart=find(data3{i}=='T');
+      hr=str2num(data3{i}(timestart+1:timestart+2));
+      minute=str2num(data3{i}(timestart+4:timestart+5));
+      second=str2num(data3{i}(timestart+7:timestart+8));
+      se2tfull(i)=hr+minute/60+second/3600;
+    else
+      se2tfull(i)=-1;
+    end
   end
-  
 end
 se1f=data2;
 se2f=data4;
@@ -364,7 +382,7 @@ end
  plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
  text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
  title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at %d-%dh follow-up (average %2.1fh, n=%d)\nDataset: %s\nCode Version: %s',lowtime,hightime,mean(se2tsave),length(se2tsave),inputFileName,version))
- legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(C12_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest')
+ legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(Cin_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest')
  grid on
  hold off
  saveas (gcf,sprintf('%s/%s_Backcheck.png',output,inputFileName))
