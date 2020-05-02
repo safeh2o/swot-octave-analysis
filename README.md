@@ -1,7 +1,7 @@
 # swot-octave-analysis
 Repo for SWOT engineering optimization analytics in GNU Octave.
 
-Version 1.4\n
+Version 1.4
 -corrected how missing data is handled when reading xlsx files
 -corrected issue causing data to be skipped when reading csv files
 -changed graphical details of backcheck graph
