@@ -69,6 +69,7 @@ if isempty(frccol2)
 end
 
 if strcmp(inputFileExt,'.xlsx')
+  fprintf(2, "Warning: .xlsx formats must have one datetime format");
   data1=strdata(2:end,timecol1);
   data2=[alldata{2:end,frccol1}]';
   data3=strdata(2:end,timecol2);
@@ -80,55 +81,96 @@ if strcmp(inputFileExt,'.xlsx')
     data3=[alldata{2:end,timecol2}]';
   end
 else
-  if temp(2,1)<3000
-    fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
-  else
-    fmt = [repmat('%*s',1,timecol1-1) '%f' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%f' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
-  end
-  %fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f'];
+##  if temp(2,1)<3000
+##    fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+##  else
+##    fmt = [repmat('%*s',1,timecol1-1) '%f' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%f' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+##  end
+  fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
   alldata=textscan(fid,fmt,'Delimiter',',','EndOfLine','\n');
+
   data1=alldata{1};
   data2=alldata{2};
   data3=alldata{3};
   data4=alldata{4};
-  if isa(data1,'float')
-    if data1(1)<4000
-      data1(1)=data1(1)+40000;
+  
+  for i=1:size(data1,1)
+    [num, isnum] = str2num(data1{i});
+    if isnum
+      if i == 1 && num < 4000
+        num = num + 40000;
+      end
+      se1tfull(i) = num * 24;
+    else
+      timestart=find(data1{i}=='T');
+      hr=str2num(data1{i}(timestart+1:timestart+2));
+      minute=str2num(data1{i}(timestart+4:timestart+5));
+      if size(data1{i}) > 16
+        second = str2num(data1{i}(timestart+7:timestart+8));
+      else
+        second = 0;
+      end
+      se1tfull(i)=hr+minute/60+second/3600; 
     end
   end
+  
+  for i=1:size(data3,1)
+    [num, isnum] = str2num(data3{i});
+    if isnum
+      se2tfull(i) = num * 24;
+    else
+      timestart=find(data3{i}=='T');
+      hr=str2num(data3{i}(timestart+1:timestart+2));
+      minute=str2num(data3{i}(timestart+4:timestart+5));
+      if size(data3{i}) > 16
+        second = str2num(data3{i}(timestart+7:timestart+8));
+      else
+        second = 0;
+      end
+      se2tfull(i)=hr+minute/60+second/3600; 
+    end
+  end
+  
+##  if isa(data1,'float')
+##    if data1(1)<4000
+##      data1(1)=data1(1)+40000;
+##    end
+##  end
   fclose(fid);
 end
   
   
-for i=1:size(data1,1)
-  if isa(data1,'float')
-    se1tfull(i)=data1(i)*24;
-  else  
-    if ~isempty(data1{i})
-      timestart=find(data1{i}=='T');
-      hr=str2num(data1{i}(timestart+1:timestart+2));
-      minute=str2num(data1{i}(timestart+4:timestart+5));
-      second=str2num(data1{i}(timestart+7:timestart+8));
-      se1tfull(i)=hr+minute/60+second/3600; 
-    else
-      se1tfull(i)=-1;
-    end
-  end
-  
-  if isa(data3,'float')
-    se2tfull(i)=data3(i)*24;
-  else  
-    if ~isempty(data3{i})
-      timestart=find(data3{i}=='T');
-      hr=str2num(data3{i}(timestart+1:timestart+2));
-      minute=str2num(data3{i}(timestart+4:timestart+5));
-      second=str2num(data3{i}(timestart+7:timestart+8));
-      se2tfull(i)=hr+minute/60+second/3600;
-    else
-      se2tfull(i)=-1;
-    end
-  end
-end
+##for i=1:size(data1,1)
+##  if isa(data1,'float')
+##    se1tfull(i)=data1(i)*24;
+##  else  
+##    if ~isempty(data1{i})
+##      timestart=find(data1{i}=='T');
+##      hr=str2num(data1{i}(timestart+1:timestart+2));
+##      minute=str2num(data1{i}(timestart+4:timestart+5));
+##      second=str2num(data1{i}(timestart+7:timestart+8));
+##      se1tfull(i)=hr+minute/60+second/3600; 
+##    else
+##      se1tfull(i)=-1;
+##    end
+##  end
+##  
+##  if isa(data3,'float')
+##    se2tfull(i)=data3(i)*24;
+##  else  
+##    if ~isempty(data3{i})
+##      timestart=find(data3{i}=='T');
+##      hr=str2num(data3{i}(timestart+1:timestart+2));
+##      minute=str2num(data3{i}(timestart+4:timestart+5));
+##      second=str2num(data3{i}(timestart+7:timestart+8));
+##      se2tfull(i)=hr+minute/60+second/3600;
+##    else
+##      se2tfull(i)=-1;
+##    end
+##  end
+##end
+
+
 se1f=data2;
 se2f=data4;
 se1tfull=se1tfull';
