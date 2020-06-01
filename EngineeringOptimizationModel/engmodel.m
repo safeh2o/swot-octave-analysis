@@ -45,6 +45,11 @@ if nargin<3
 end
 
 [inputFileDir, inputFileName, inputFileExt] = fileparts(filein)
+% Specify dictionary containing all output file names to test for their existence
+output_filenames = containers.Map;
+output_filenames('results') = sprintf('%s/%s_Results.xlsx',output,inputFileName);
+output_filenames('backcheck') = sprintf('%s/%s_Backcheck.png',output,inputFileName);
+output_filenames('contour') = sprintf('%s/%s_Contour.png',output,inputFileName);
 
 if strcmp(inputFileExt,'.xlsx')
   [numdata strdata alldata]=xlsread(filein);
@@ -382,7 +387,7 @@ end
  legend([p(1) p(2) p(3)],'Optimum Solution','Minimum Prediction for C0(t=12h)','Maximum Prediction for C0(t=12h)','Location','northwest')
  title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputFileName,version))
  hold off
- saveas (gcf,sprintf('%s/%s_Contour.png',output,inputFileName))
+ saveas (gcf,output_filenames('contour'))
   
  ex1=sum(se1fsave>=0.2 & se1fsave<=0.5);
  ex2=sum(se2fsave>=0.2 & se1fsave>=0.2 & se1fsave<=0.5);
@@ -427,7 +432,7 @@ end
  legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(Cin_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest')
  grid on
  hold off
- saveas (gcf,sprintf('%s/%s_Backcheck.png',output,inputFileName))
+ saveas (gcf,output_filenames('backcheck'))
  close all
  
  forxls=cell(11,28);
@@ -439,8 +444,7 @@ end
   forxls(6+i,2:28)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) length(se1t) sse_1_test(i) R2_1_test(i) sumres_1_test(i) SSR_1_test(i) minC6(i) C6_1_test(i) maxC6(i) minC12(i) C12_1_test(i) maxC12(i) minC15(i) C15_1_test(i) maxC15(i) minC18(i) C18_1_test(i) maxC18(i) minC24(i) C24_1_test(i) maxC24(i) minCin(i) Cin_1_test(i) maxCin(i)};
  end
 
- 
- xlswrite(sprintf('%s/%s_Results.xlsx',output,inputFileName),forxls,'A1:AB11');
+ xlswrite(output_filenames('results'),forxls,'A1:AB11');
 end
 
 %looking at SSE for all points
