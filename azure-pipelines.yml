@@ -19,7 +19,7 @@ steps:
 - script: |
     echo Installing requirements...
     sudo apt-get update
-    sudo apt-get -y install octave
+    sudo apt-get -y install octave octave-statistics
 
 - script: |
     echo Running tests:
