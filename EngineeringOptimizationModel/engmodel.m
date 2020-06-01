@@ -1,4 +1,4 @@
-function engmodel(filein,output,inputtime,varargin)
+function output_filenames = engmodel(filein,output,inputtime,varargin)
 %Engineering Optimization Model for SWOT
 %Saad Ali
 
@@ -46,10 +46,10 @@ end
 
 [inputFileDir, inputFileName, inputFileExt] = fileparts(filein)
 % Specify dictionary containing all output file names to test for their existence
-output_filenames = containers.Map;
-output_filenames('results') = sprintf('%s/%s_Results.xlsx',output,inputFileName);
-output_filenames('backcheck') = sprintf('%s/%s_Backcheck.png',output,inputFileName);
-output_filenames('contour') = sprintf('%s/%s_Contour.png',output,inputFileName);
+output_filenames = struct();
+output_filenames.results = sprintf('%s/%s_Results.xlsx',output,inputFileName);
+output_filenames.backcheck = sprintf('%s/%s_Backcheck.png',output,inputFileName);
+output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
 
 if strcmp(inputFileExt,'.xlsx')
   [numdata strdata alldata]=xlsread(filein);
@@ -387,7 +387,7 @@ end
  legend([p(1) p(2) p(3)],'Optimum Solution','Minimum Prediction for C0(t=12h)','Maximum Prediction for C0(t=12h)','Location','northwest')
  title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputFileName,version))
  hold off
- saveas (gcf,output_filenames('contour'))
+ saveas (gcf,output_filenames.contour)
   
  ex1=sum(se1fsave>=0.2 & se1fsave<=0.5);
  ex2=sum(se2fsave>=0.2 & se1fsave>=0.2 & se1fsave<=0.5);
@@ -432,7 +432,7 @@ end
  legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(Cin_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest')
  grid on
  hold off
- saveas (gcf,output_filenames('backcheck'))
+ saveas (gcf,output_filenames.backcheck)
  close all
  
  forxls=cell(11,28);
@@ -444,7 +444,7 @@ end
   forxls(6+i,2:28)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) length(se1t) sse_1_test(i) R2_1_test(i) sumres_1_test(i) SSR_1_test(i) minC6(i) C6_1_test(i) maxC6(i) minC12(i) C12_1_test(i) maxC12(i) minC15(i) C15_1_test(i) maxC15(i) minC18(i) C18_1_test(i) maxC18(i) minC24(i) C24_1_test(i) maxC24(i) minCin(i) Cin_1_test(i) maxCin(i)};
  end
 
- xlswrite(output_filenames('results'),forxls,'A1:AB11');
+ xlswrite(output_filenames.results,forxls,'A1:AB11');
 end
 
 %looking at SSE for all points
@@ -452,3 +452,45 @@ function SSE=fun(a,t,f,f0,w)
 fpred=(f0.^(1-a(2))+(a(2)-1)*a(1)*t).^(1/(1-a(2)));
 SSE=sum(w.*((f-fpred).^2));
 end
+
+
+%!function found = file_found(path)
+%!  found = exist(path) == 2;
+%!endfunction
+%!function not_empty = file_not_empty(path)
+%!  inf = dir(path);
+%!  not_empty = inf.bytes > 0;
+%!endfunction
+%!
+%!function test_case(input)
+%!  outputdirname = tempname();
+%!  mkdir(outputdirname);
+%!  outputs = engmodel(input, outputdirname);
+%!  output_fields = fieldnames(outputs);
+%!  
+%!  assert (size(output_fields, 1) > 0)
+%!  for i = 1:size(output_fields, 1)
+%!    output_fieldname = output_fields{i};
+%!    output_filename = getfield(outputs, output_fieldname);
+%!    if (file_found(output_filename) == false)
+%!      error ("file not found, expected %s", output_filename);
+%!    end
+%!    if (file_not_empty(output_filename) == false)
+%!      error ("file not empty, expected %s", output_filename);
+%!    end
+%!  end
+%!  confirm_recursive_rmdir(0, "local");
+%!  rmdir(outputdirname, "s");
+%!endfunction
+%!
+%!test1
+%!  test_case('tests/test1.csv')
+%!test2
+%!  test_case('tests/test2.csv')
+%!test3
+%!  test_case('tests/test3.csv')
+%!test4
+%!  test_case('tests/test4.csv')
+%!test5
+%!  test_case('tests/test5.csv')
+%!
