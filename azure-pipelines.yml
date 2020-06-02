@@ -1,0 +1,32 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: |
+    echo $(Build.SourcesDirectory) is the working dir. Files:
+    ls -al $(Build.SourcesDirectory)
+
+  displayName: 'List working dir'
+
+- script: |
+    echo Installing requirements...
+    sudo apt-get update
+    sudo apt-get -y install octave octave-statistics
+
+  displayName: 'Install requirements'
+
+- script: |
+    echo Running tests:
+    cd EngineeringOptimizationModel
+    chmod 700 tests.sh
+    ./tests.sh
+
+  displayName: 'Run tests'
