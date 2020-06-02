@@ -21,9 +21,12 @@ steps:
     sudo apt-get update
     sudo apt-get -y install octave octave-statistics
 
+  displayName: 'Install requirements'
+
 - script: |
     echo Running tests:
     cd EngineeringOptimizationModel
-    octave-cli --eval "test engmodel"
+    chmod 700 tests.sh
+    ./tests.sh
 
   displayName: 'Run tests'
