@@ -468,7 +468,7 @@ end
 %!  outputs = engmodel(input, outputdirname);
 %!  output_fields = fieldnames(outputs);
 %!  
-%!  assert (size(output_fields, 1) > 0)
+%!  assert (size(output_fields, 1) == 3)
 %!  for i = 1:size(output_fields, 1)
 %!    output_fieldname = output_fields{i};
 %!    output_filename = getfield(outputs, output_fieldname);
