@@ -1,4 +1,4 @@
-function reco=engmodel(filein,output,varargin)
+function [output_filenames,reco]=engmodel(filein,output,varargin)
 %Engineering Optimization Model for SWOT
 %Saad Ali
 
@@ -51,10 +51,18 @@ if nargin<2
 end
 
 [inputFileDir, inputFileName, inputFileExt] = fileparts(filein);
+% Specify dictionary containing all output file names to test for their existence
+output_filenames = struct();
+output_filenames.results = sprintf('%s/%s_Results.xlsx',output,inputFileName);
+output_filenames.backcheck = sprintf('%s/%s_Backcheck.png',output,inputFileName);
+output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
+
+%scan input filename for time and decay scenario
 underscores=strfind(inputFileName,"__");
 inputtime=str2num(inputFileName(underscores(end-1)+2:underscores(end)-1));
 scenario=inputFileName(underscores(end)+2:end);
 
+%handles csv and xlsx differently
 if strcmp(inputFileExt,'.xlsx')
   [numdata strdata alldata]=xlsread(filein);
   header=strdata(1,:);
@@ -350,7 +358,7 @@ end
  set(lgd1,'FontSize',8);
  title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10)
  hold off
- saveas (gcf,sprintf('%s/%s_Contour.png',output,inputFileName))
+ saveas (gcf,output_filenames.contour)
   
  ex1=sum(se1fsave>=0.2 & se1fsave<=0.5);
  ex2=sum(se2fsave>=0.2 & se1fsave>=0.2 & se1fsave<=0.5);
@@ -374,6 +382,13 @@ end
  else
   prpercent2=0;
  end
+ pr5=sum(se1fsave>=min(Cin_good)-0.1 & se1fsave<=min(Cin_good)+0.1); %max
+ pr6=sum(se2fsave>=0.2 & se1fsave>=min(Cin_good)-0.1 & se1fsave<=min(Cin_good)+0.1);
+ if pr5>0
+  prpercent3=pr6/pr5*100;
+ else
+  prpercent3=0;
+ end
   
  h=figure;
  hold on
@@ -385,28 +400,34 @@ end
  plot([0 maxFRC],[0 maxFRC],'k-','HandleVisibility','off')
  plot([0.2 0.2], [0 maxFRC],'r--')
  plot([0.5 0.5], [0 maxFRC],'r--','HandleVisibility','off')
- if scenario=='optimumDecay'
-  plot([Cin_1(ii)-0.1 Cin_1(ii)-0.1], [0 maxFRC],'g--')
-  plot([Cin_1(ii)+0.1 Cin_1(ii)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
-  reco=Cin_1(ii);
- else
+ if scenario=='minDecay'
+  plot([min(Cin_good)-0.1 min(Cin_good)-0.1], [0 maxFRC],'b--')
+  plot([min(Cin_good)+0.1 min(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
+  reco=min(Cin_good);
+ elseif scenario=='maxDecay'
   plot([max(Cin_good)-0.1 max(Cin_good)-0.1], [0 maxFRC],'b--')
   plot([max(Cin_good)+0.1 max(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
   reco=max(Cin_good);
+else
+  plot([Cin_1(ii)-0.1 Cin_1(ii)-0.1], [0 maxFRC],'g--')
+  plot([Cin_1(ii)+0.1 Cin_1(ii)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
+  reco=Cin_1(ii);
 end
 
  plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
  text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
  title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at %d-%dh follow-up (average %2.1fh, n=%d)\nDataset: %s\nCode Version: %s',lowtime,hightime,mean(se2tsave),length(se2tsave),inputFileName,version),'FontSize',10)
- if scenario=='optimumDecay'
-  lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),'Location', 'NorthWest');
- else
+ if scenario=='minDecay'
+  lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Minimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',min(Cin_good)-0.1,min(Cin_good)+0.1,pr6,pr5,prpercent3),'Location', 'NorthWest');
+ elseif scenario=='maxDecay'
   lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(Cin_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest');
+ else
+  lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),'Location', 'NorthWest');
  end
  set(lgd2,'FontSize',8);
  grid on
  hold off
- saveas (gcf,sprintf('%s/%s_Backcheck.png',output,inputFileName))
+ saveas (gcf,output_filenames.backcheck)
  close all
  
  forxls=cell(11,28);
@@ -419,7 +440,7 @@ end
  end
 
  
- xlswrite(sprintf('%s/%s_Results.xlsx',output,inputFileName),forxls,'A1:AB11');
+ xlswrite(output_filenames.results,forxls,'A1:AB11');
 end
 
 %looking at SSE for all points
@@ -427,3 +448,44 @@ function SSE=fun(a,t,f,f0,w)
 fpred=(f0.^(1-a(2))+(a(2)-1)*a(1)*t).^(1/(1-a(2)));
 SSE=sum(w.*((f-fpred).^2));
 end
+
+%!function found = file_found(path)
+%!  found = exist(path) == 2;
+%!endfunction
+%!function not_empty = file_not_empty(path)
+%!  inf = dir(path);
+%!  not_empty = inf.bytes > 0;
+%!endfunction
+%!
+%!function test_case(input)
+%!  outputdirname = tempname();
+%!  mkdir(outputdirname);
+%!  outputs = engmodel(input, outputdirname);
+%!  output_fields = fieldnames(outputs);
+%!  
+%!  assert (size(output_fields, 1) == 3)
+%!  for i = 1:size(output_fields, 1)
+%!    output_fieldname = output_fields{i};
+%!    output_filename = getfield(outputs, output_fieldname);
+%!    if (file_found(output_filename) == false)
+%!      error ("file not found, expected %s", output_filename);
+%!    end
+%!    if (file_not_empty(output_filename) == false)
+%!      error ("file not empty, expected %s", output_filename);
+%!    end
+%!  end
+%!  confirm_recursive_rmdir(0, "local");
+%!  rmdir(outputdirname, "s");
+%!endfunction
+%!
+%!test1
+%!  test_case('tests/test1.csv')
+%!test2
+%!  test_case('tests/test2.csv')
+%!test3
+%!  test_case('tests/test3.csv')
+%!test4
+%!  test_case('tests/test4.csv')
+%!test5
+%!  test_case('tests/test5.csv')
+%!
