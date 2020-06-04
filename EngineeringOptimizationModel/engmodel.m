@@ -521,13 +521,13 @@ end
 %!endfunction
 %!
 %!test1
-%!  test_case('tests/test1.csv')
+%!  test_case('tests/ds1__UjW__test1__20191231__6__minDecay.csv')
 %!test2
-%!  test_case('tests/test2.csv')
+%!  test_case('tests/ds2__YPSl__test2__20191231__9__optimumDecay.csv')
 %!test3
-%!  test_case('tests/test3.csv')
+%!  test_case('tests/ds3__Gcr__test3__20191231__12__maxDecay.csv')
 %!test4
-%!  test_case('tests/test4.csv')
+%!  test_case('tests/ds4__dPBf__test4__20191231__15__optimumDecay.csv')
 %!test5
-%!  test_case('tests/test5.csv')
+%!  test_case('tests/ds5__3ZiW__test5__20191231__18__minDecay.csv')
 %!
