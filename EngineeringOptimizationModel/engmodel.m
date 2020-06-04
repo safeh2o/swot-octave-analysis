@@ -50,19 +50,19 @@ if nargin<2
   output='Output';
 end
 
-[inputFileDir, inputFileName, inputFileExt] = fileparts(filein);
+[inputFileDir, inputFileName, inputFileExt] = fileparts(filein)
 % Specify dictionary containing all output file names to test for their existence
 output_filenames = struct();
 output_filenames.results = sprintf('%s/%s_Results.xlsx',output,inputFileName);
 output_filenames.backcheck = sprintf('%s/%s_Backcheck.png',output,inputFileName);
 output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
 
+
 %scan input filename for time and decay scenario
 underscores=strfind(inputFileName,"__");
 inputtime=str2num(inputFileName(underscores(end-1)+2:underscores(end)-1));
 scenario=inputFileName(underscores(end)+2:end);
 
-%handles csv and xlsx differently
 if strcmp(inputFileExt,'.xlsx')
   [numdata strdata alldata]=xlsread(filein);
   header=strdata(1,:);
@@ -86,6 +86,7 @@ if isempty(frccol2)
 end
 
 if strcmp(inputFileExt,'.xlsx')
+  fprintf(2, "Warning: .xlsx formats must have one datetime format");
   data1=strdata(2:end,timecol1);
   data2=[alldata{2:end,frccol1}]';
   data3=strdata(2:end,timecol2);
@@ -97,55 +98,96 @@ if strcmp(inputFileExt,'.xlsx')
     data3=[alldata{2:end,timecol2}]';
   end
 else
-  if temp(2,1)<3000
-    fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
-  else
-    fmt = [repmat('%*s',1,timecol1-1) '%f' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%f' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
-  end
-  %fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f'];
+##  if temp(2,1)<3000
+##    fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+##  else
+##    fmt = [repmat('%*s',1,timecol1-1) '%f' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%f' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
+##  end
+  fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
   alldata=textscan(fid,fmt,'Delimiter',',','EndOfLine','\n');
+
   data1=alldata{1};
   data2=alldata{2};
   data3=alldata{3};
   data4=alldata{4};
-  if isa(data1,'float')
-    if data1(1)<4000
-      data1(1)=data1(1)+40000;
+  
+  for i=1:size(data1,1)
+    [num, isnum] = str2num(data1{i});
+    if isnum
+      if i == 1 && num < 4000
+        num = num + 40000;
+      end
+      se1tfull(i) = num * 24;
+    else
+      timestart=find(data1{i}=='T');
+      hr=str2num(data1{i}(timestart+1:timestart+2));
+      minute=str2num(data1{i}(timestart+4:timestart+5));
+      if size(data1{i}) > 16
+        second = str2num(data1{i}(timestart+7:timestart+8));
+      else
+        second = 0;
+      end
+      se1tfull(i)=hr+minute/60+second/3600; 
     end
   end
+  
+  for i=1:size(data3,1)
+    [num, isnum] = str2num(data3{i});
+    if isnum
+      se2tfull(i) = num * 24;
+    else
+      timestart=find(data3{i}=='T');
+      hr=str2num(data3{i}(timestart+1:timestart+2));
+      minute=str2num(data3{i}(timestart+4:timestart+5));
+      if size(data3{i}) > 16
+        second = str2num(data3{i}(timestart+7:timestart+8));
+      else
+        second = 0;
+      end
+      se2tfull(i)=hr+minute/60+second/3600; 
+    end
+  end
+  
+##  if isa(data1,'float')
+##    if data1(1)<4000
+##      data1(1)=data1(1)+40000;
+##    end
+##  end
   fclose(fid);
 end
   
   
-for i=1:size(data1,1)
-  if isa(data1,'float')
-    se1tfull(i)=data1(i)*24;
-  else  
-    if ~isempty(data1{i})
-      timestart=find(data1{i}=='T');
-      hr=str2num(data1{i}(timestart+1:timestart+2));
-      minute=str2num(data1{i}(timestart+4:timestart+5));
-      second=str2num(data1{i}(timestart+7:timestart+8));
-      se1tfull(i)=hr+minute/60+second/3600; 
-    else
-      se1tfull(i)=-1;
-    end
-  end
-  
-  if isa(data3,'float')
-    se2tfull(i)=data3(i)*24;
-  else  
-    if ~isempty(data3{i})
-      timestart=find(data3{i}=='T');
-      hr=str2num(data3{i}(timestart+1:timestart+2));
-      minute=str2num(data3{i}(timestart+4:timestart+5));
-      second=str2num(data3{i}(timestart+7:timestart+8));
-      se2tfull(i)=hr+minute/60+second/3600;
-    else
-      se2tfull(i)=-1;
-    end
-  end
-end
+##for i=1:size(data1,1)
+##  if isa(data1,'float')
+##    se1tfull(i)=data1(i)*24;
+##  else  
+##    if ~isempty(data1{i})
+##      timestart=find(data1{i}=='T');
+##      hr=str2num(data1{i}(timestart+1:timestart+2));
+##      minute=str2num(data1{i}(timestart+4:timestart+5));
+##      second=str2num(data1{i}(timestart+7:timestart+8));
+##      se1tfull(i)=hr+minute/60+second/3600; 
+##    else
+##      se1tfull(i)=-1;
+##    end
+##  end
+##  
+##  if isa(data3,'float')
+##    se2tfull(i)=data3(i)*24;
+##  else  
+##    if ~isempty(data3{i})
+##      timestart=find(data3{i}=='T');
+##      hr=str2num(data3{i}(timestart+1:timestart+2));
+##      minute=str2num(data3{i}(timestart+4:timestart+5));
+##      second=str2num(data3{i}(timestart+7:timestart+8));
+##      se2tfull(i)=hr+minute/60+second/3600;
+##    else
+##      se2tfull(i)=-1;
+##    end
+##  end
+##end
+
+
 se1f=data2;
 se2f=data4;
 se1tfull=se1tfull';
@@ -335,10 +377,10 @@ end
  minCin(1:5)=min(Cin_good);
  maxCin(1:5)=max(Cin_good);
  
- minpoint=find(Cin==min(Cin_good));
+ minpoint=find(C12==min(C12_good));
  minK=floor(minpoint/301)*kmax/300;
  minN=mod(minpoint-1,301)*0.01;
- maxpoint=find(Cin==max(Cin_good));
+ maxpoint=find(C12==max(C12_good));
  maxK=floor(maxpoint/301)*kmax/300;
  maxN=mod(maxpoint-1,301)*0.01;
  optpoint=find(sse1==minsse);
@@ -413,7 +455,7 @@ else
   plot([Cin_1(ii)+0.1 Cin_1(ii)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
   reco=Cin_1(ii);
 end
-
+ 
  plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
  text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
  title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at %d-%dh follow-up (average %2.1fh, n=%d)\nDataset: %s\nCode Version: %s',lowtime,hightime,mean(se2tsave),length(se2tsave),inputFileName,version),'FontSize',10)
@@ -439,7 +481,6 @@ end
   forxls(6+i,2:28)={k(i,1) k(i,2) a_1(i,1) a_1(i,2) length(se1t) sse_1_test(i) R2_1_test(i) sumres_1_test(i) SSR_1_test(i) minC6(i) C6_1_test(i) maxC6(i) minC12(i) C12_1_test(i) maxC12(i) minC15(i) C15_1_test(i) maxC15(i) minC18(i) C18_1_test(i) maxC18(i) minC24(i) C24_1_test(i) maxC24(i) minCin(i) Cin_1_test(i) maxCin(i)};
  end
 
- 
  xlswrite(output_filenames.results,forxls,'A1:AB11');
 end
 
@@ -448,6 +489,7 @@ function SSE=fun(a,t,f,f0,w)
 fpred=(f0.^(1-a(2))+(a(2)-1)*a(1)*t).^(1/(1-a(2)));
 SSE=sum(w.*((f-fpred).^2));
 end
+
 
 %!function found = file_found(path)
 %!  found = exist(path) == 2;
