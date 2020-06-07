@@ -434,40 +434,45 @@ end
   
  h=figure;
  hold on
- maxFRC=round(max(se1fsave)*1.2*10)/10;
- plot(se1fsave,se2fsave,'o','HandleVisibility','off') 
- xlabel('FRC at Tapstand (mg/L)')
- ylabel('FRC at Household (mg/L)')
- axis([0 maxFRC 0 maxFRC])
- plot([0 maxFRC],[0 maxFRC],'k-','HandleVisibility','off')
- plot([0.2 0.2], [0 maxFRC],'r--')
- plot([0.5 0.5], [0 maxFRC],'r--','HandleVisibility','off')
- if strcmp(scenario,'minDecay')
-  plot([min(Cin_good)-0.1 min(Cin_good)-0.1], [0 maxFRC],'b--')
-  plot([min(Cin_good)+0.1 min(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
-  reco=min(Cin_good);
- elseif strcmp(scenario,'maxDecay')
-  plot([max(Cin_good)-0.1 max(Cin_good)-0.1], [0 maxFRC],'b--')
-  plot([max(Cin_good)+0.1 max(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
-  reco=max(Cin_good);
-else
-  plot([Cin_1(ii)-0.1 Cin_1(ii)-0.1], [0 maxFRC],'g--')
-  plot([Cin_1(ii)+0.1 Cin_1(ii)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
-  reco=Cin_1(ii);
-end
- 
- plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
- text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
- title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at %d-%dh follow-up (average %2.1fh, n=%d)\nDataset: %s\nCode Version: %s',lowtime,hightime,mean(se2tsave),length(se2tsave),inputFileName,version),'FontSize',10)
- if strcmp(scenario,'minDecay')
-  lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Minimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',min(Cin_good)-0.1,min(Cin_good)+0.1,pr6,pr5,prpercent3),'Location', 'NorthWest');
- elseif strcmp(scenario,'maxDecay')
-  lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(Cin_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest');
+ if isempty(se1fsave)
+    text(0.5,0.5,sprintf('ERROR\nNo data available\n in input time range'),'FontSize',48,'horizontalAlignment','center');
  else
-  lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),'Location', 'NorthWest');
+  maxFRC=round(max(se1fsave)*1.2*10)/10;
+  plot(se1fsave,se2fsave,'o','HandleVisibility','off') 
+  xlabel('FRC at Tapstand (mg/L)')
+  ylabel('FRC at Household (mg/L)')
+  axis([0 maxFRC 0 maxFRC])
+  plot([0 maxFRC],[0 maxFRC],'k-','HandleVisibility','off')
+  plot([0.2 0.2], [0 maxFRC],'r--')
+  plot([0.5 0.5], [0 maxFRC],'r--','HandleVisibility','off')
+  if strcmp(scenario,'minDecay')
+    plot([min(Cin_good)-0.1 min(Cin_good)-0.1], [0 maxFRC],'b--')
+    plot([min(Cin_good)+0.1 min(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
+    reco=min(Cin_good);
+  elseif strcmp(scenario,'maxDecay')
+    plot([max(Cin_good)-0.1 max(Cin_good)-0.1], [0 maxFRC],'b--')
+    plot([max(Cin_good)+0.1 max(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
+    reco=max(Cin_good);
+  else
+    plot([Cin_1(ii)-0.1 Cin_1(ii)-0.1], [0 maxFRC],'g--')
+    plot([Cin_1(ii)+0.1 Cin_1(ii)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
+    reco=Cin_1(ii);
+  end
+ 
+  plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
+  text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
+  title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at %d-%dh follow-up (average %2.1fh, n=%d)\nDataset: %s\nCode Version: %s',lowtime,hightime,mean(se2tsave),length(se2tsave),inputFileName,version),'FontSize',10)
+  if strcmp(scenario,'minDecay')
+    lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Minimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',min(Cin_good)-0.1,min(Cin_good)+0.1,pr6,pr5,prpercent3),'Location', 'NorthWest');
+  elseif strcmp(scenario,'maxDecay')
+    lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(Cin_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest');
+  else
+    lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),'Location', 'NorthWest');
+  end
+  set(lgd2,'FontSize',8);
+  grid on
  end
- set(lgd2,'FontSize',8);
- grid on
+
  hold off
  saveas (gcf,output_filenames.backcheck)
  close all
