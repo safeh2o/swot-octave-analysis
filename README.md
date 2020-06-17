@@ -1,5 +1,16 @@
+[![Build Status](https://dev.azure.com/dighr-swot/SWOT/_apis/build/status/dighr.swot-octave-analysis?branchName=master)](https://dev.azure.com/dighr-swot/SWOT/_build/latest?definitionId=3&branchName=master)
+
 # swot-octave-analysis
 Repo for SWOT engineering optimization analytics in GNU Octave.
+
+Version 1.5
+-changed to read decay scenario and input optimization time from filename
+-removed full dataset name from results output table
+-modified contour plot to show markers for maximum and minimum C0 based on input time instead of 12h
+-adjusted axis range on empirical backcheck graph
+-modified font sizes in empirical backcheck graph for better fit
+-modified backcheck graph to only show selected decay scenario
+-added command line output for EO recommendation
 
 Version 1.4
 -corrected how missing data is handled when reading xlsx files

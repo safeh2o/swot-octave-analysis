@@ -1,7 +1,16 @@
-function output_filenames = engmodel(filein,output,inputtime,varargin)
+function [output_filenames,reco]=engmodel(filein,output,varargin)
 %Engineering Optimization Model for SWOT
 %Saad Ali
 
+%Version 1.5
+%-changed to read decay scenario and input optimization time from filename
+%-removed full dataset name from results output table
+%-modified contour plot to show markers for maximum and minimum C0 based on input time instead of 12h
+%-adjusted axis range on empirical backcheck graph
+%-modified font sizes in empirical backcheck graph for better fit
+%-modified backcheck graph to only show selected decay scenario
+%-added command line output for EO recommendation
+%
 %Version 1.4
 %-corrected how missing data is handled when reading xlsx files
 %-corrected issue causing data to be skipped when reading csv files
@@ -31,7 +40,7 @@ clc
 format long
 pkg load statistics
 pkg load io
-version='1.4';
+version='1.5';
 
 if nargin==0
     sprintf('Require input file path')
@@ -40,9 +49,6 @@ end
 if nargin<2
   output='Output';
 end
-if nargin<3
-  inputtime=12;
-end
 
 [inputFileDir, inputFileName, inputFileExt] = fileparts(filein)
 % Specify dictionary containing all output file names to test for their existence
@@ -50,6 +56,12 @@ output_filenames = struct();
 output_filenames.results = sprintf('%s/%s_Results.xlsx',output,inputFileName);
 output_filenames.backcheck = sprintf('%s/%s_Backcheck.png',output,inputFileName);
 output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
+
+
+%scan input filename for time and decay scenario
+underscores=strfind(inputFileName,"__");
+inputtime=str2num(inputFileName(underscores(end-1)+2:underscores(end)-1));
+scenario=inputFileName(underscores(end)+2:end);
 
 if strcmp(inputFileExt,'.xlsx')
   [numdata strdata alldata]=xlsread(filein);
@@ -384,8 +396,9 @@ end
  p(1)=plot(optK,optN,'kx');
  p(2)=plot(minK,minN,'bx');
  p(3)=plot(maxK,maxN,'rx');
- legend([p(1) p(2) p(3)],'Optimum Solution','Minimum Prediction for C0(t=12h)','Maximum Prediction for C0(t=12h)','Location','northwest')
- title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputFileName,version))
+ lgd1=legend([p(1) p(2) p(3)],'Optimum Solution',sprintf('Minimum Prediction for C0(t=%dh)',inputtime),sprintf('Maximum Prediction for C0(t=%dh)',inputtime),'Location','northwest');
+ set(lgd1,'FontSize',8);
+ title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10)
  hold off
  saveas (gcf,output_filenames.contour)
   
@@ -411,32 +424,61 @@ end
  else
   prpercent2=0;
  end
+ pr5=sum(se1fsave>=min(Cin_good)-0.1 & se1fsave<=min(Cin_good)+0.1); %max
+ pr6=sum(se2fsave>=0.2 & se1fsave>=min(Cin_good)-0.1 & se1fsave<=min(Cin_good)+0.1);
+ if pr5>0
+  prpercent3=pr6/pr5*100;
+ else
+  prpercent3=0;
+ end
   
  h=figure;
  hold on
- maxFRC=round(max(se1f)*1.2*10)/10;
- plot(se1fsave,se2fsave,'o','HandleVisibility','off') 
- xlabel('FRC at Tapstand (mg/L)')
- ylabel('FRC at Household (mg/L)')
- axis([0 maxFRC 0 maxFRC])
- plot([0 maxFRC],[0 maxFRC],'k-','HandleVisibility','off')
- plot([0.2 0.2], [0 maxFRC],'r--')
- plot([0.5 0.5], [0 maxFRC],'r--','HandleVisibility','off')
- plot([Cin_1(ii)-0.1 Cin_1(ii)-0.1], [0 maxFRC],'g--')
- plot([Cin_1(ii)+0.1 Cin_1(ii)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
- plot([max(Cin_good)-0.1 max(Cin_good)-0.1], [0 maxFRC],'b--')
- plot([max(Cin_good)+0.1 max(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
- plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
- text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
- title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at %d-%dh follow-up (average %2.1fh, n=%d)\nDataset: %s\nCode Version: %s',lowtime,hightime,mean(se2tsave),length(se2tsave),inputFileName,version))
- legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(Cin_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest')
- grid on
+ if isempty(se1fsave)
+    text(0.5,0.5,sprintf('ERROR\nNo data available\n in input time range'),'FontSize',48,'horizontalAlignment','center');
+ else
+  maxFRC=round(max(se1fsave)*1.2*10)/10;
+  plot(se1fsave,se2fsave,'o','HandleVisibility','off') 
+  xlabel('FRC at Tapstand (mg/L)')
+  ylabel('FRC at Household (mg/L)')
+  axis([0 maxFRC 0 maxFRC])
+  plot([0 maxFRC],[0 maxFRC],'k-','HandleVisibility','off')
+  plot([0.2 0.2], [0 maxFRC],'r--')
+  plot([0.5 0.5], [0 maxFRC],'r--','HandleVisibility','off')
+  if strcmp(scenario,'minDecay')
+    plot([min(Cin_good)-0.1 min(Cin_good)-0.1], [0 maxFRC],'b--')
+    plot([min(Cin_good)+0.1 min(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
+    reco=min(Cin_good);
+  elseif strcmp(scenario,'maxDecay')
+    plot([max(Cin_good)-0.1 max(Cin_good)-0.1], [0 maxFRC],'b--')
+    plot([max(Cin_good)+0.1 max(Cin_good)+0.1], [0 maxFRC],'b--','HandleVisibility','off')
+    reco=max(Cin_good);
+  else
+    plot([Cin_1(ii)-0.1 Cin_1(ii)-0.1], [0 maxFRC],'g--')
+    plot([Cin_1(ii)+0.1 Cin_1(ii)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
+    reco=Cin_1(ii);
+  end
+ 
+  plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
+  text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
+  title(sprintf('SWOT Engineering Optimization Model - Empirical Back-Check at %d-%dh follow-up (average %2.1fh, n=%d)\nDataset: %s\nCode Version: %s',lowtime,hightime,mean(se2tsave),length(se2tsave),inputFileName,version),'FontSize',10)
+  if strcmp(scenario,'minDecay')
+    lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Minimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',min(Cin_good)-0.1,min(Cin_good)+0.1,pr6,pr5,prpercent3),'Location', 'NorthWest');
+  elseif strcmp(scenario,'maxDecay')
+    lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(Cin_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest');
+  else
+    lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),'Location', 'NorthWest');
+  end
+  set(lgd2,'FontSize',8);
+  grid on
+ end
+
  hold off
  saveas (gcf,output_filenames.backcheck)
  close all
  
  forxls=cell(11,28);
- forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName,version),'Initial guess for k','Initial guess for n','k','n','Number of points used','SSE','R2','Sum of residuals','Relative error','Minimum C(t=6h)','Optimum C(t=6h)','Maximum C(t=6h)','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=18h)','Optimum C(t=18h)','Maximum C(t=18h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)',sprintf('Minimum C(t=%dh)',inputtime),sprintf('Optimum C(t=%dh)',inputtime),sprintf('Maximum C(t=%dh)',inputtime)};
+ forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName(1:underscores(1)-1),version),'Initial guess for k','Initial guess for n','k','n','Number of points used','SSE','R2','Sum of residuals','Relative error','Minimum C(t=6h)','Optimum C(t=6h)','Maximum C(t=6h)','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=18h)','Optimum C(t=18h)','Maximum C(t=18h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)',sprintf('Minimum C(t=%dh)',inputtime),sprintf('Optimum C(t=%dh)',inputtime),sprintf('Maximum C(t=%dh)',inputtime)};
  forxls(2)={'90% Training Set'};
  forxls(7)={'10% Test Set'};
  for i=1:5
@@ -484,13 +526,13 @@ end
 %!endfunction
 %!
 %!test1
-%!  test_case('tests/test1.csv')
+%!  test_case('tests/ds1__UjW__test1__20191231__6__minDecay.csv')
 %!test2
-%!  test_case('tests/test2.csv')
+%!  test_case('tests/ds2__YPSl__test2__20191231__9__optimumDecay.csv')
 %!test3
-%!  test_case('tests/test3.csv')
+%!  test_case('tests/ds3__Gcr__test3__20191231__12__maxDecay.csv')
 %!test4
-%!  test_case('tests/test4.csv')
+%!  test_case('tests/ds4__dPBf__test4__20191231__15__optimumDecay.csv')
 %!test5
-%!  test_case('tests/test5.csv')
+%!  test_case('tests/ds5__3ZiW__test5__20191231__18__minDecay.csv')
 %!
