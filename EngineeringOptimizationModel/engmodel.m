@@ -111,42 +111,9 @@ else
   data3=alldata{3};
   data4=alldata{4};
   
-  for i=1:size(data1,1)
-    [num, isnum] = str2num(data1{i});
-    if isnum
-      if i == 1 && num < 4000
-        num = num + 40000;
-      end
-      se1tfull(i) = num * 24;
-    else
-      timestart=find(data1{i}=='T');
-      hr=str2num(data1{i}(timestart+1:timestart+2));
-      minute=str2num(data1{i}(timestart+4:timestart+5));
-      if size(data1{i}) > 16
-        second = str2num(data1{i}(timestart+7:timestart+8));
-      else
-        second = 0;
-      end
-      se1tfull(i)=hr+minute/60+second/3600; 
-    end
-  end
-  
-  for i=1:size(data3,1)
-    [num, isnum] = str2num(data3{i});
-    if isnum
-      se2tfull(i) = num * 24;
-    else
-      timestart=find(data3{i}=='T');
-      hr=str2num(data3{i}(timestart+1:timestart+2));
-      minute=str2num(data3{i}(timestart+4:timestart+5));
-      if size(data3{i}) > 16
-        second = str2num(data3{i}(timestart+7:timestart+8));
-      else
-        second = 0;
-      end
-      se2tfull(i)=hr+minute/60+second/3600; 
-    end
-  end
+
+  se1tfull=parse_dates(data1);
+  se2tfull=parse_dates(data3);
   
 ##  if isa(data1,'float')
 ##    if data1(1)<4000
@@ -210,7 +177,7 @@ f02=se1f;
 %builds a vector of elements that need to be removed from each measurement time
 %checks if any concentration is greater than FRC1 by 0.05 and 5%
 %also checks if concentrations or times are negative (ie. blank) to remove those elements
-bad=se2f>se1f+0.03 | se2f<=0 | se1tfull<0 | se2tfull<0 | se2t<=0 | isnan(se2f) | isnan(se1f);
+bad=se2f>se1f+0.03 | se2f<=0 | se1tfull<0 | se2tfull<0 | se2t<=0 | isnan(se2f) | isnan(se1f) | isnan(se2t);
 
 %remove all previously determined bad elements from each pair of vectors
 se1t=se1t(bad==0);
