@@ -56,6 +56,7 @@ output_filenames = struct();
 output_filenames.results = sprintf('%s/%s_Results.xlsx',output,inputFileName);
 output_filenames.backcheck = sprintf('%s/%s_Backcheck.png',output,inputFileName);
 output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
+output_filenames.skipped = sprintf('%s/%s_SkippedRows.csv',output,inputFileName);
 
 
 %scan input filename for time and decay scenario
@@ -85,6 +86,7 @@ if isempty(frccol2)
   frccol2=find(strcmp(header,'hh_frc'));
 end
 
+% excel file
 if strcmp(inputFileExt,'.xlsx')
   fprintf(2, "Warning: .xlsx formats must have one datetime format");
   data1=strdata(2:end,timecol1);
@@ -97,6 +99,7 @@ if strcmp(inputFileExt,'.xlsx')
   if isempty(data3)
     data3=[alldata{2:end,timecol2}]';
   end
+% csv file
 else
 ##  if temp(2,1)<3000
 ##    fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
@@ -178,6 +181,26 @@ f02=se1f;
 %checks if any concentration is greater than FRC1 by 0.05 and 5%
 %also checks if concentrations or times are negative (ie. blank) to remove those elements
 bad=se2f>se1f+0.03 | se2f<=0 | se1tfull<0 | se2tfull<0 | se2t<=0 | isnan(se2f) | isnan(se1f) | isnan(se2t);
+
+%save skipped rows in a separate container
+
+skipped_rows_indices = find(bad==1);
+skipped_rows = {};
+
+if strcmp(inputFileExt, '.csv')
+  for i = 1:length(skipped_rows_indices)
+    idx = skipped_rows_indices(i);
+    time1 = data1{idx};
+    time2 = data3{idx};
+    frc1 = data2(idx);
+    frc2 = data4(idx);
+    [cond, temp] = strsplit(alldata{5}{idx}, ','){:};
+    skipped_rows(i,:) = {time1, frc1, time2, frc2, cond, temp};
+  endfor
+
+  headers = {"ts_datetime","ts_frc","hh_datetime","hh_frc","ts_cond","ts_wattemp"};
+  cell2csv(output_filenames.skipped, [headers;skipped_rows]);
+end
 
 %remove all previously determined bad elements from each pair of vectors
 se1t=se1t(bad==0);
@@ -464,20 +487,21 @@ end
 
 
 %!function found = file_found(path)
-%!  found = exist(path) == 2;
+%!  DIRECTORY_EXISTS = 2;
+%!  found = exist(path) == DIRECTORY_EXISTS;
 %!endfunction
 %!function not_empty = file_not_empty(path)
-%!  inf = dir(path);
-%!  not_empty = inf.bytes > 0;
+%!  dinfo = dir(path);
+%!  not_empty = dinfo.bytes > 0;
 %!endfunction
 %!
 %!function test_case(input)
+%!  EXPECTED_OUTPUT_FILE_COUNT = 4;
 %!  outputdirname = tempname();
 %!  mkdir(outputdirname);
 %!  outputs = engmodel(input, outputdirname);
 %!  output_fields = fieldnames(outputs);
-%!  
-%!  assert (size(output_fields, 1) == 3)
+%!  assert (size(output_fields, 1) == EXPECTED_OUTPUT_FILE_COUNT)
 %!  for i = 1:size(output_fields, 1)
 %!    output_fieldname = output_fields{i};
 %!    output_filename = getfield(outputs, output_fieldname);
