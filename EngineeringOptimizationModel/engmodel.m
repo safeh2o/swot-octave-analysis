@@ -57,6 +57,7 @@ output_filenames.results = sprintf('%s/%s_Results.xlsx',output,inputFileName);
 output_filenames.backcheck = sprintf('%s/%s_Backcheck.png',output,inputFileName);
 output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
 output_filenames.skipped = sprintf('%s/%s_SkippedRows.csv',output,inputFileName);
+output_filenames.ruleset = sprintf('%s/%s_Ruleset.csv',output,inputFileName);
 
 
 %scan input filename for time and decay scenario
@@ -180,7 +181,31 @@ f02=se1f;
 %builds a vector of elements that need to be removed from each measurement time
 %checks if any concentration is greater than FRC1 by 0.05 and 5%
 %also checks if concentrations or times are negative (ie. blank) to remove those elements
-bad=se2f>se1f+0.03 | se2f<=0 | se1tfull<0 | se2tfull<0 | se2t<=0 | isnan(se2f) | isnan(se1f) | isnan(se2t);
+
+% function to concatenate a ruleset with a new rule, returns a new rule set with the added rule
+addrule = @(rules, description, matches) ([rules, struct('description', description, 'matches', matches)]);
+
+% initialize empty rule set
+rules = [];
+
+% add rules to the rule set
+rules = addrule(rules, 'Household FRC is greater than tapstand by 0.03', se2f>se1f+0.03);
+rules = addrule(rules, 'Household FRC is less or equal to 0', se2f<=0);
+rules = addrule(rules, 'Invalid tapstand date/time', se1tfull<0);
+rules = addrule(rules, 'Invalid household date/time', se2tfull<0);
+rules = addrule(rules, 'Invalid tapstand to household time difference', se2t<=0 | isnan(se2t));
+rules = addrule(rules, 'Invalid tapstand FRC', isnan(se1f));
+rules = addrule(rules, 'Invalid household FRC', isnan(se2f));
+
+bad=0;
+fp_ruleset = fopen(output_filenames.ruleset, 'w');
+fprintf(fp_ruleset, 'Description,Count\n');
+for i = 1:length(rules)
+  rule = rules(i);
+  bad = bad | rule.matches;
+  fprintf(fp_ruleset,'%s,%d\n', rule.description, sum(rule.matches));
+endfor
+fclose(fp_ruleset);
 
 %save skipped rows in a separate container
 
@@ -496,7 +521,7 @@ end
 %!endfunction
 %!
 %!function test_case(input)
-%!  EXPECTED_OUTPUT_FILE_COUNT = 4;
+%!  EXPECTED_OUTPUT_FILE_COUNT = 5;
 %!  outputdirname = tempname();
 %!  mkdir(outputdirname);
 %!  outputs = engmodel(input, outputdirname);
