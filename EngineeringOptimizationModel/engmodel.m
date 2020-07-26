@@ -59,6 +59,15 @@ output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
 output_filenames.skipped = sprintf('%s/%s_SkippedRows.csv',output,inputFileName);
 output_filenames.ruleset = sprintf('%s/%s_Ruleset.csv',output,inputFileName);
 
+% Specify column names expected in CSV file in a struct
+cols = struct();
+cols.ts_datetime = 'ts_datetime';
+cols.ts_frc = 'ts_frc';
+cols.hh_datetime = 'hh_datetime';
+cols.hh_frc = 'hh_frc';
+cols.ts_cond = 'ts_cond';
+cols.ts_wattemp = 'ts_wattemp';
+
 
 %scan input filename for time and decay scenario
 underscores=strfind(inputFileName,"__");
@@ -76,15 +85,15 @@ else
   header=cell2mat(headercell);
 end
   
-timecol1=find(strcmp(header,'ts_datetime'));
+timecol1=find(strcmp(header,cols.ts_datetime));
 frccol1=find(strcmp(header,'ts_frc1'));
 if isempty(frccol1)
-  frccol1=find(strcmp(header,'ts_frc'));
+  frccol1=find(strcmp(header,cols.ts_frc));
 end
-timecol2=find(strcmp(header,'hh_datetime'));
+timecol2=find(strcmp(header,cols.hh_datetime));
 frccol2=find(strcmp(header,'hh_frc1'));
 if isempty(frccol2)
-  frccol2=find(strcmp(header,'hh_frc'));
+  frccol2=find(strcmp(header,cols.hh_frc));
 end
 
 % excel file
@@ -183,19 +192,19 @@ f02=se1f;
 %also checks if concentrations or times are negative (ie. blank) to remove those elements
 
 % function to concatenate a ruleset with a new rule, returns a new rule set with the added rule
-addrule = @(rules, description, matches) ([rules, struct('description', description, 'matches', matches)]);
+addrule = @(rules, description, column, matches) ([rules, struct('description', description, 'column', column, 'matches', matches)]);
 
 % initialize empty rule set
 rules = [];
 
 % add rules to the rule set
-rules = addrule(rules, 'Household FRC is greater than tapstand by 0.03', se2f>se1f+0.03);
-rules = addrule(rules, 'Household FRC is less or equal to 0', se2f<=0);
-rules = addrule(rules, 'Invalid tapstand date/time', se1tfull<0);
-rules = addrule(rules, 'Invalid household date/time', se2tfull<0);
-rules = addrule(rules, 'Invalid tapstand to household time difference', se2t<=0 | isnan(se2t));
-rules = addrule(rules, 'Invalid tapstand FRC', isnan(se1f));
-rules = addrule(rules, 'Invalid household FRC', isnan(se2f));
+rules = addrule(rules, 'Household FRC is greater than tapstand by 0.03', cols.hh_frc, se2f>se1f+0.03);
+rules = addrule(rules, 'Household FRC is less or equal to 0', cols.hh_frc, se2f<=0);
+rules = addrule(rules, 'Invalid tapstand date/time', cols.ts_datetime, se1tfull<0);
+rules = addrule(rules, 'Invalid household date/time', cols.hh_datetime, se2tfull<0);
+rules = addrule(rules, 'Invalid tapstand to household time difference', strjoin({cols.ts_datetime, cols.hh_datetime}, ','), se2t<=0 | isnan(se2t));
+rules = addrule(rules, 'Invalid tapstand FRC', cols.ts_frc, isnan(se1f));
+rules = addrule(rules, 'Invalid household FRC', cols.hh_frc, isnan(se2f));
 
 bad=0;
 fp_ruleset = fopen(output_filenames.ruleset, 'w');
@@ -220,10 +229,17 @@ if strcmp(inputFileExt, '.csv')
     frc1 = data2(idx);
     frc2 = data4(idx);
     [cond, temp] = strsplit(alldata{5}{idx}, ','){:};
-    skipped_rows(i,:) = {time1, frc1, time2, frc2, cond, temp};
+    reason = '';
+    for j = 1:length(rules)
+      if (rules(j).matches(idx))
+        reason = rules(j).column;
+        break;
+      endif
+    endfor
+    skipped_rows(i,:) = {time1, frc1, time2, frc2, cond, temp, reason};
   endfor
 
-  headers = {"ts_datetime","ts_frc","hh_datetime","hh_frc","ts_cond","ts_wattemp"};
+  headers = {cols.ts_datetime, cols.ts_frc, cols.hh_datetime, cols.hh_frc, cols.ts_cond, cols.ts_wattemp, "reason"};
   cell2csv(output_filenames.skipped, [headers;skipped_rows]);
 end
 
