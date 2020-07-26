@@ -198,7 +198,7 @@ addrule = @(rules, description, column, matches) ([rules, struct('description', 
 rules = [];
 
 % add rules to the rule set
-rules = addrule(rules, 'Household FRC is greater than tapstand by 0.03', cols.hh_frc, se2f>se1f+0.03);
+rules = addrule(rules, 'Household FRC is greater than tapstand by 0.03', strjoin({cols.ts_frc, cols.hh_frc}, ','), se2f>se1f+0.03);
 rules = addrule(rules, 'Household FRC is less or equal to 0', cols.hh_frc, se2f<=0);
 rules = addrule(rules, 'Invalid tapstand date/time', cols.ts_datetime, se1tfull<0);
 rules = addrule(rules, 'Invalid household date/time', cols.hh_datetime, se2tfull<0);
