@@ -56,6 +56,17 @@ output_filenames = struct();
 output_filenames.results = sprintf('%s/%s_Results.xlsx',output,inputFileName);
 output_filenames.backcheck = sprintf('%s/%s_Backcheck.png',output,inputFileName);
 output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
+output_filenames.skipped = sprintf('%s/%s_SkippedRows.csv',output,inputFileName);
+output_filenames.ruleset = sprintf('%s/%s_Ruleset.csv',output,inputFileName);
+
+% Specify column names expected in CSV file in a struct
+cols = struct();
+cols.ts_datetime = 'ts_datetime';
+cols.ts_frc = 'ts_frc';
+cols.hh_datetime = 'hh_datetime';
+cols.hh_frc = 'hh_frc';
+cols.ts_cond = 'ts_cond';
+cols.ts_wattemp = 'ts_wattemp';
 
 
 %scan input filename for time and decay scenario
@@ -74,17 +85,18 @@ else
   header=cell2mat(headercell);
 end
   
-timecol1=find(strcmp(header,'ts_datetime'));
+timecol1=find(strcmp(header,cols.ts_datetime));
 frccol1=find(strcmp(header,'ts_frc1'));
 if isempty(frccol1)
-  frccol1=find(strcmp(header,'ts_frc'));
+  frccol1=find(strcmp(header,cols.ts_frc));
 end
-timecol2=find(strcmp(header,'hh_datetime'));
+timecol2=find(strcmp(header,cols.hh_datetime));
 frccol2=find(strcmp(header,'hh_frc1'));
 if isempty(frccol2)
-  frccol2=find(strcmp(header,'hh_frc'));
+  frccol2=find(strcmp(header,cols.hh_frc));
 end
 
+% excel file
 if strcmp(inputFileExt,'.xlsx')
   fprintf(2, "Warning: .xlsx formats must have one datetime format");
   data1=strdata(2:end,timecol1);
@@ -97,6 +109,7 @@ if strcmp(inputFileExt,'.xlsx')
   if isempty(data3)
     data3=[alldata{2:end,timecol2}]';
   end
+% csv file
 else
 ##  if temp(2,1)<3000
 ##    fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
@@ -111,42 +124,9 @@ else
   data3=alldata{3};
   data4=alldata{4};
   
-  for i=1:size(data1,1)
-    [num, isnum] = str2num(data1{i});
-    if isnum
-      if i == 1 && num < 4000
-        num = num + 40000;
-      end
-      se1tfull(i) = num * 24;
-    else
-      timestart=find(data1{i}=='T');
-      hr=str2num(data1{i}(timestart+1:timestart+2));
-      minute=str2num(data1{i}(timestart+4:timestart+5));
-      if size(data1{i}) > 16
-        second = str2num(data1{i}(timestart+7:timestart+8));
-      else
-        second = 0;
-      end
-      se1tfull(i)=hr+minute/60+second/3600; 
-    end
-  end
-  
-  for i=1:size(data3,1)
-    [num, isnum] = str2num(data3{i});
-    if isnum
-      se2tfull(i) = num * 24;
-    else
-      timestart=find(data3{i}=='T');
-      hr=str2num(data3{i}(timestart+1:timestart+2));
-      minute=str2num(data3{i}(timestart+4:timestart+5));
-      if size(data3{i}) > 16
-        second = str2num(data3{i}(timestart+7:timestart+8));
-      else
-        second = 0;
-      end
-      se2tfull(i)=hr+minute/60+second/3600; 
-    end
-  end
+
+  se1tfull=parse_dates(data1);
+  se2tfull=parse_dates(data3);
   
 ##  if isa(data1,'float')
 ##    if data1(1)<4000
@@ -210,7 +190,58 @@ f02=se1f;
 %builds a vector of elements that need to be removed from each measurement time
 %checks if any concentration is greater than FRC1 by 0.05 and 5%
 %also checks if concentrations or times are negative (ie. blank) to remove those elements
-bad=se2f>se1f+0.03 | se2f<=0 | se1tfull<0 | se2tfull<0 | se2t<=0 | isnan(se2f) | isnan(se1f);
+
+% function to concatenate a ruleset with a new rule, returns a new rule set with the added rule
+addrule = @(rules, description, column, matches) ([rules, struct('description', description, 'column', column, 'matches', matches)]);
+
+% initialize empty rule set
+rules = [];
+
+% add rules to the rule set
+rules = addrule(rules, 'Household FRC is greater than tapstand by 0.03', strjoin({cols.ts_frc, cols.hh_frc}, ','), se2f>se1f+0.03);
+rules = addrule(rules, 'Household FRC is less or equal to 0', cols.hh_frc, se2f<=0);
+rules = addrule(rules, 'Invalid tapstand date/time', cols.ts_datetime, se1tfull<0);
+rules = addrule(rules, 'Invalid household date/time', cols.hh_datetime, se2tfull<0);
+rules = addrule(rules, 'Invalid tapstand to household time difference', strjoin({cols.ts_datetime, cols.hh_datetime}, ','), se2t<=0 | isnan(se2t));
+rules = addrule(rules, 'Invalid tapstand FRC', cols.ts_frc, isnan(se1f));
+rules = addrule(rules, 'Invalid household FRC', cols.hh_frc, isnan(se2f));
+
+bad=0;
+fp_ruleset = fopen(output_filenames.ruleset, 'w');
+fprintf(fp_ruleset, 'Description,Count\n');
+for i = 1:length(rules)
+  rule = rules(i);
+  bad = bad | rule.matches;
+  fprintf(fp_ruleset,'%s,%d\n', rule.description, sum(rule.matches));
+endfor
+fclose(fp_ruleset);
+
+%save skipped rows in a separate container
+
+skipped_rows_indices = find(bad==1);
+skipped_rows = {};
+
+if strcmp(inputFileExt, '.csv')
+  for i = 1:length(skipped_rows_indices)
+    idx = skipped_rows_indices(i);
+    time1 = data1{idx};
+    time2 = data3{idx};
+    frc1 = data2(idx);
+    frc2 = data4(idx);
+    [cond, temp] = strsplit(alldata{5}{idx}, ','){:};
+    reason = '';
+    for j = 1:length(rules)
+      if (rules(j).matches(idx))
+        reason = rules(j).column;
+        break;
+      endif
+    endfor
+    skipped_rows(i,:) = {time1, frc1, time2, frc2, cond, temp, reason};
+  endfor
+
+  headers = {cols.ts_datetime, cols.ts_frc, cols.hh_datetime, cols.hh_frc, cols.ts_cond, cols.ts_wattemp, "reason"};
+  cell2csv(output_filenames.skipped, [headers;skipped_rows]);
+end
 
 %remove all previously determined bad elements from each pair of vectors
 se1t=se1t(bad==0);
@@ -497,20 +528,21 @@ end
 
 
 %!function found = file_found(path)
-%!  found = exist(path) == 2;
+%!  DIRECTORY_EXISTS = 2;
+%!  found = exist(path) == DIRECTORY_EXISTS;
 %!endfunction
 %!function not_empty = file_not_empty(path)
-%!  inf = dir(path);
-%!  not_empty = inf.bytes > 0;
+%!  dinfo = dir(path);
+%!  not_empty = dinfo.bytes > 0;
 %!endfunction
 %!
 %!function test_case(input)
+%!  EXPECTED_OUTPUT_FILE_COUNT = 5;
 %!  outputdirname = tempname();
 %!  mkdir(outputdirname);
 %!  outputs = engmodel(input, outputdirname);
 %!  output_fields = fieldnames(outputs);
-%!  
-%!  assert (size(output_fields, 1) == 3)
+%!  assert (size(output_fields, 1) == EXPECTED_OUTPUT_FILE_COUNT)
 %!  for i = 1:size(output_fields, 1)
 %!    output_fieldname = output_fields{i};
 %!    output_filename = getfield(outputs, output_fieldname);
