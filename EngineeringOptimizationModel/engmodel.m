@@ -2,6 +2,10 @@ function [output_filenames,reco]=engmodel(filein,output,varargin)
 %Engineering Optimization Model for SWOT
 %Saad Ali
 
+%Version 1.6
+%-limited results.xlsx outputs to 3 decimal places
+%-created new histogram output to show elapsed time for each samples
+%
 %Version 1.5
 %-changed to read decay scenario and input optimization time from filename
 %-removed full dataset name from results output table
@@ -40,7 +44,7 @@ clc
 format long
 pkg load statistics
 pkg load io
-version='1.5';
+version='1.6';
 
 if nargin==0
     sprintf('Require input file path')
