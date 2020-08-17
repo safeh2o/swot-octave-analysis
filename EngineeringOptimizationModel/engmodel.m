@@ -56,6 +56,7 @@ output_filenames = struct();
 output_filenames.results = sprintf('%s/%s_Results.xlsx',output,inputFileName);
 output_filenames.backcheck = sprintf('%s/%s_Backcheck.png',output,inputFileName);
 output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
+output_filenames.histo = sprintf('%s/%s_Histogram.png',output,inputFileName);
 output_filenames.skipped = sprintf('%s/%s_SkippedRows.csv',output,inputFileName);
 output_filenames.ruleset = sprintf('%s/%s_Ruleset.csv',output,inputFileName);
 
@@ -432,6 +433,33 @@ end
  optK=floor(optpoint/301)*kmax/300;
  optN=mod(optpoint-1,301)*0.01;
   
+ %for histogram
+ histoy=zeros(24,1);
+ for i=1:length(se2t)
+   histoy(ceil(se2t(i)))=histoy(ceil(se2t(i)))+1;
+ end
+ 
+ bar([1:24],histoy)
+ xtick=[1:24];
+ xticklabel=['0-1';'1-2';'2-3';'3-4';'4-5';'5-6';'6-7';'7-8';'8-9';'9-10';'10-11';'11-12';'12-13';'13-14';'14-15';'15-16';'16-17';'17-18';'18-19';'19-20';'20-21';'21-22';'22-23';'23-24'];
+ set(gca,'xtick',xtick,'xticklabel',xticklabel)
+ h=get(gca,'xlabel');
+ xlabelstring=get(h,'string');
+ xlabelposition=get(h,'position');
+ yposition=xlabelposition(2)+6;
+ yposition=repmat(yposition,length(xtick),1);
+ set(gca,'xtick',[]);
+ hnew=text(xtick,yposition,xticklabel);
+ set(hnew,'rotation',90,'horizontalalignment','right');
+ xlh=xlabel('Time (hr)');
+ xlhpos=get(xlh,'Position');
+ xlhpos(2)=xlhpos(2)-9;
+ set(xlh,'Position',xlhpos)
+ ylabel('Number of samples')
+ title(sprintf('SWOT Engineering Optimization Model - Histogram of Elapsed Sample Times\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10)
+ saveas (gcf,output_filenames.histo)
+ 
+ %for contour
  set(0,'DefaultTextInterpreter','none')
  h=figure;
  contour(0:kmax/300:kmax,0:0.01:3,sse1,minsse*[1.05:0.05:2])
@@ -447,6 +475,8 @@ end
  hold off
  saveas (gcf,output_filenames.contour)
   
+ 
+    
  ex1=sum(se1fsave>=0.2 & se1fsave<=0.5);
  ex2=sum(se2fsave>=0.2 & se1fsave>=0.2 & se1fsave<=0.5);
  if ex1>0
