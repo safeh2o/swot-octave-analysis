@@ -3,6 +3,10 @@
 # swot-octave-analysis
 Repo for SWOT engineering optimization analytics in GNU Octave.
 
+Version 1.6
+-limited results.xlsx outputs to 3 decimal places
+-created new histogram output to show elapsed time for each samples
+
 Version 1.5
 -changed to read decay scenario and input optimization time from filename
 -removed full dataset name from results output table
