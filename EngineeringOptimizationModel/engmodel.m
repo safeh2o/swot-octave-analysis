@@ -438,14 +438,21 @@ end
  optN=mod(optpoint-1,301)*0.01;
   
  %for histogram
- histoy=zeros(24,1);
+## histoy=zeros(24,1);
+ highs = ceil(se2t);
+ histoy = zeros(max(highs),1);
  for i=1:length(se2t)
-   histoy(ceil(se2t(i)))=histoy(ceil(se2t(i)))+1;
+   histoy(highs(i))=histoy(highs(i),1)+1;
  end
  
- bar([1:24],histoy)
- xtick=[1:24];
- xticklabel=['0-1';'1-2';'2-3';'3-4';'4-5';'5-6';'6-7';'7-8';'8-9';'9-10';'10-11';'11-12';'12-13';'13-14';'14-15';'15-16';'16-17';'17-18';'18-19';'19-20';'20-21';'21-22';'22-23';'23-24'];
+ bar([1:length(histoy)],histoy)
+ xtick=[1:length(histoy)];
+ 
+ xticklabel = {};
+ for i = 1:length(histoy)
+  xticklabel{i} = sprintf('%d-%d',i-1,i);
+ end
+## xticklabel=['0-1';'1-2';'2-3';'3-4';'4-5';'5-6';'6-7';'7-8';'8-9';'9-10';'10-11';'11-12';'12-13';'13-14';'14-15';'15-16';'16-17';'17-18';'18-19';'19-20';'20-21';'21-22';'22-23';'23-24'];
  set(gca,'xtick',xtick,'xticklabel',xticklabel)
  h=get(gca,'xlabel');
  xlabelstring=get(h,'string');
@@ -585,13 +592,13 @@ end
 %!endfunction
 %!
 %!function test_case(input)
-%!  EXPECTED_OUTPUT_FILE_COUNT = 5;
+%!  EXPECTED_OUTPUT_FILE_COUNT = 6;
 %!  outputdirname = tempname();
 %!  mkdir(outputdirname);
 %!  outputs = engmodel(input, outputdirname);
 %!  output_fields = fieldnames(outputs);
-%!  assert (size(output_fields, 1) == EXPECTED_OUTPUT_FILE_COUNT)
-%!  for i = 1:size(output_fields, 1)
+%!  assert (length(output_fields) == EXPECTED_OUTPUT_FILE_COUNT)
+%!  for i = 1:length(output_fields)
 %!    output_fieldname = output_fields{i};
 %!    output_filename = getfield(outputs, output_fieldname);
 %!    if (file_found(output_filename) == false)
