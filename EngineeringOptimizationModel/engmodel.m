@@ -457,7 +457,7 @@ end
  h=get(gca,'xlabel');
  xlabelstring=get(h,'string');
  xlabelposition=get(h,'position');
- yposition=xlabelposition(2)+6;
+ yposition=xlabelposition(2)+2.5;
  yposition=repmat(yposition,length(xtick),1);
  set(gca,'xtick',[]);
  hnew=text(xtick,yposition,xticklabel);
