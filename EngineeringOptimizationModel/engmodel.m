@@ -452,39 +452,38 @@ end
  for i = 1:length(histoy)
   xticklabel{i} = sprintf('%d-%d',i-1,i);
  end
-## xticklabel=['0-1';'1-2';'2-3';'3-4';'4-5';'5-6';'6-7';'7-8';'8-9';'9-10';'10-11';'11-12';'12-13';'13-14';'14-15';'15-16';'16-17';'17-18';'18-19';'19-20';'20-21';'21-22';'22-23';'23-24'];
  set(gca,'xtick',xtick,'xticklabel',xticklabel)
  h=get(gca,'xlabel');
- xlabelstring=get(h,'string');
  xlabelposition=get(h,'position');
- yposition=xlabelposition(2)+2.5;
+ yposition=xlabelposition(2)+1;
  yposition=repmat(yposition,length(xtick),1);
  set(gca,'xtick',[]);
+ 
  hnew=text(xtick,yposition,xticklabel);
  set(hnew,'rotation',90,'horizontalalignment','right');
  xlh=xlabel('Time (hr)');
  xlhpos=get(xlh,'Position');
- xlhpos(2)=xlhpos(2)-9;
- set(xlh,'Position',xlhpos)
- ylabel('Number of samples')
- title(sprintf('SWOT Engineering Optimization Model - Histogram of Elapsed Sample Times\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10)
- saveas (gcf,output_filenames.histo)
+ xlhpos(2)=xlhpos(2)-1.5;
+ set(xlh,'Position',xlhpos);
+ ylabel('Number of samples');
+ title(sprintf('SWOT Engineering Optimization Model - Histogram of Elapsed Sample Times\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10);
+ saveas (gcf,output_filenames.histo);
  
  %for contour
- set(0,'DefaultTextInterpreter','none')
+ set(0,'DefaultTextInterpreter','none');
  h=figure;
- contour(0:kmax/300:kmax,0:0.01:3,sse1,minsse*[1.05:0.05:2])
+ contour(0:kmax/300:kmax,0:0.01:3,sse1,minsse*[1.05:0.05:2]);
  hold on
- xlabel('Decay Rate, k (hr-1)')
- ylabel('Rate Order, n (dimensionless)')
+ xlabel('Decay Rate, k (hr-1)');
+ ylabel('Rate Order, n (dimensionless)');
  p(1)=plot(optK,optN,'kx');
  p(2)=plot(minK,minN,'bx');
  p(3)=plot(maxK,maxN,'rx');
  lgd1=legend([p(1) p(2) p(3)],'Optimum Solution',sprintf('Minimum Prediction for C0(t=%dh)',inputtime),sprintf('Maximum Prediction for C0(t=%dh)',inputtime),'Location','northwest');
  set(lgd1,'FontSize',8);
- title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10)
- hold off
- saveas (gcf,output_filenames.contour)
+ title(sprintf('SWOT Engineering Optimization Model - Sensitivity Contour Plot\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10);
+ hold off;
+ saveas (gcf,output_filenames.contour);
   
  
     
