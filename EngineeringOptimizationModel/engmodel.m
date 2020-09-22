@@ -204,7 +204,7 @@ rules = [];
 
 % add rules to the rule set
 rules = addrule(rules, 'Household FRC is greater than tapstand by 0.03', strjoin({cols.ts_frc, cols.hh_frc}, ','), se2f>se1f+0.03);
-rules = addrule(rules, 'Household FRC is less or equal to 0', cols.hh_frc, se2f<=0);
+rules = addrule(rules, 'Household FRC is less than 0', cols.hh_frc, se2f<0);
 rules = addrule(rules, 'Invalid tapstand date/time', cols.ts_datetime, se1tfull<0);
 rules = addrule(rules, 'Invalid household date/time', cols.hh_datetime, se2tfull<0);
 rules = addrule(rules, 'Invalid tapstand to household time difference', strjoin({cols.ts_datetime, cols.hh_datetime}, ','), se2t<=0 | isnan(se2t));
@@ -446,6 +446,7 @@ end
  end
  
  bar([1:length(histoy)],histoy)
+ hold on;
  xtick=[1:length(histoy)];
  
  xticklabel = {};
@@ -462,19 +463,20 @@ end
  
 ## hnew=text(xtick,yposition,xticklabel);
 ## set(hnew,'rotation',90,'horizontalalignment','right');
- xlh=xlabel('Starting Time (hr)');
+ xlh=xlabel('Elapsed Time (hr)');
 ## xlhpos=get(xlh,'Position');
 ## xlhpos(2)=xlhpos(2)-1.5;
 ## set(xlh,'Position',xlhpos);
  ylabel('Number of samples');
  title(sprintf('SWOT Engineering Optimization Model - Histogram of Elapsed Sample Times\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10);
+ hold off;
  saveas (gcf,output_filenames.histo);
  
  %for contour
  set(0,'DefaultTextInterpreter','none');
  h=figure;
  contour(0:kmax/300:kmax,0:0.01:3,sse1,minsse*[1.05:0.05:2]);
- hold on
+ hold on;
  xlabel('Decay Rate, k (hr-1)');
  ylabel('Rate Order, n (dimensionless)');
  p(1)=plot(optK,optN,'kx');
