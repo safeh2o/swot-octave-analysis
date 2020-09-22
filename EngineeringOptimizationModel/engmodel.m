@@ -450,21 +450,22 @@ end
  
  xticklabel = {};
  for i = 1:length(histoy)
-  xticklabel{i} = sprintf('%d-%d',i-1,i);
+##  xticklabel{i} = sprintf('%d-%d',i-1,i);
+  xticklabel{i} = sprintf('%d',i-1);
  end
  set(gca,'xtick',xtick,'xticklabel',xticklabel)
  h=get(gca,'xlabel');
  xlabelposition=get(h,'position');
  yposition=xlabelposition(2)+1;
  yposition=repmat(yposition,length(xtick),1);
- set(gca,'xtick',[]);
+## set(gca,'xtick',[]);
  
- hnew=text(xtick,yposition,xticklabel);
- set(hnew,'rotation',90,'horizontalalignment','right');
- xlh=xlabel('Time (hr)');
- xlhpos=get(xlh,'Position');
- xlhpos(2)=xlhpos(2)-1.5;
- set(xlh,'Position',xlhpos);
+## hnew=text(xtick,yposition,xticklabel);
+## set(hnew,'rotation',90,'horizontalalignment','right');
+ xlh=xlabel('Starting Time (hr)');
+## xlhpos=get(xlh,'Position');
+## xlhpos(2)=xlhpos(2)-1.5;
+## set(xlh,'Position',xlhpos);
  ylabel('Number of samples');
  title(sprintf('SWOT Engineering Optimization Model - Histogram of Elapsed Sample Times\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10);
  saveas (gcf,output_filenames.histo);
