@@ -304,17 +304,17 @@ for i=1:5
   sst_FRC2_1(i)=sum((f(t>=4)-mean(f(t>=4))).^2);
   R2_FRC2_1(i)=1-sse_FRC2_1(i)/sst_FRC2_1(i);
   
-  e1=fpred./f;
-  e2=f./fpred;
-  ee=[e1(e1>e2)-1;e2(e2>=e1)-1];
-  en=normpdf(ee,0.5,0.15);
-  SSR_1(i)=sum(en)/length(en);
+  ## e1=fpred./f;
+  ## e2=f./fpred;
+  ## ee=[e1(e1>e2)-1;e2(e2>=e1)-1];
+  ## en=normpdf(ee,0.5,0.15);
+  ## SSR_1(i)=sum(en)/length(en);
   
-  e1=fpred(t>=4)./f(t>=4);
-  e2=f(t>=4)./fpred(t>=4);
-  ee=[e1(e1>e2)-1;e2(e2>=e1)-1];
-  en=normpdf(ee,0.5,0.15);
-  SSR_FRC2_1(i)=sum(en)/length(en);
+  ## e1=fpred(t>=4)./f(t>=4);
+  ## e2=f(t>=4)./fpred(t>=4);
+  ## ee=[e1(e1>e2)-1;e2(e2>=e1)-1];
+  ## en=normpdf(ee,0.5,0.15);
+  ## SSR_FRC2_1(i)=sum(en)/length(en);
   
   res=f-fpred;
   sumres_1(i)=sum(res);
@@ -342,17 +342,17 @@ for i=1:5
   sst_FRC2_1_test(i)=sum((f_test(t_test>=4)-mean(f_test(t_test>=4))).^2);
   R2_FRC2_1_test(i)=1-sse_FRC2_1_test(i)/sst_FRC2_1_test(i);
   
-  e1_test=fpred_test./f_test;
-  e2_test=f_test./fpred_test;
-  ee_test=[e1_test(e1_test>e2_test)-1;e2_test(e2_test>=e1_test)-1];
-  en_test=normpdf(ee_test,0.5,0.15);
-  SSR_1_test(i)=sum(en_test)/length(en_test);
+  ## e1_test=fpred_test./f_test;
+  ## e2_test=f_test./fpred_test;
+  ## ee_test=[e1_test(e1_test>e2_test)-1;e2_test(e2_test>=e1_test)-1];
+  ## en_test=normpdf(ee_test,0.5,0.15);
+  ## SSR_1_test(i)=sum(en_test)/length(en_test);
   
-  e1_test=fpred_test(t_test>=4)./f_test(t_test>=4);
-  e2_test=f_test(t_test>=4)./fpred_test(t_test>=4);
-  ee_test=[e1_test(e1_test>e2_test)-1;e2_test(e2_test>=e1_test)-1];
-  en_test=normpdf(ee_test,0.5,0.15);
-  SSR_FRC2_1_test(i)=sum(en_test)/length(en_test);
+  ## e1_test=fpred_test(t_test>=4)./f_test(t_test>=4);
+  ## e2_test=f_test(t_test>=4)./fpred_test(t_test>=4);
+  ## ee_test=[e1_test(e1_test>e2_test)-1;e2_test(e2_test>=e1_test)-1];
+  ## en_test=normpdf(ee_test,0.5,0.15);
+  ## SSR_FRC2_1_test(i)=sum(en_test)/length(en_test);
   
   res_test=f_test-fpred_test;
   sumres_1_test(i)=sum(res_test);
@@ -565,13 +565,13 @@ end
  saveas (gcf,output_filenames.backcheck)
  close all
  
- forxls=cell(11,31);
- forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName(1:underscores(1)-1),version),'Initial guess for k','Initial guess for n','k','n','Number of points used','SSE','R2','Sum of residuals','Relative error','Minimum C(t=6h)','Optimum C(t=6h)','Maximum C(t=6h)','Minimum C(t=9h)','Optimum C(t=9h)','Maximum C(t=9h)','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=18h)','Optimum C(t=18h)','Maximum C(t=18h)','Minimum C(t=21h)','Optimum C(t=21h)','Maximum C(t=21h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
+ forxls=cell(11,30);
+ forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName(1:underscores(1)-1),version),'Initial guess for k','Initial guess for n','k','n','Number of points used','SSE','R2','Sum of residuals','Minimum C(t=6h)','Optimum C(t=6h)','Maximum C(t=6h)','Minimum C(t=9h)','Optimum C(t=9h)','Maximum C(t=9h)','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=18h)','Optimum C(t=18h)','Maximum C(t=18h)','Minimum C(t=21h)','Optimum C(t=21h)','Maximum C(t=21h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
  forxls(2)={'90% Training Set'};
  forxls(7)={'10% Test Set'};
  for i=1:5
-  forxls(1+i,2:31)={sprintf('%0.3f',k(i,1)) sprintf('%0.3f',k(i,2)) sprintf('%0.3f',a_1(i,1)) sprintf('%0.3f',a_1(i,2)) length(se1t) sprintf('%0.3f',sse_1(i)) sprintf('%0.3f',R2_1(i)) sprintf('%0.3f',sumres_1(i)) sprintf('%0.3f',SSR_1(i)) sprintf('%0.3f',minC6(i)) sprintf('%0.3f',C6_1(i)) sprintf('%0.3f',maxC6(i)) sprintf('%0.3f',minC9(i)) sprintf('%0.3f',C9_1(i)) sprintf('%0.3f',maxC9(i)) sprintf('%0.3f',minC12(i)) sprintf('%0.3f',C12_1(i)) sprintf('%0.3f',maxC12(i)) sprintf('%0.3f',minC15(i)) sprintf('%0.3f',C15_1(i)) sprintf('%0.3f',maxC15(i)) sprintf('%0.3f',minC18(i)) sprintf('%0.3f',C18_1(i)) sprintf('%0.3f',maxC18(i)) sprintf('%0.3f',minC21(i)) sprintf('%0.3f',C21_1(i)) sprintf('%0.3f',maxC21(i)) sprintf('%0.3f',minC24(i)) sprintf('%0.3f',C24_1(i)) sprintf('%0.3f',maxC24(i))};
-  forxls(6+i,2:31)={sprintf('%0.3f',k(i,1)) sprintf('%0.3f',k(i,2)) sprintf('%0.3f',a_1(i,1)) sprintf('%0.3f',a_1(i,2)) length(se1t) sprintf('%0.3f',sse_1_test(i)) sprintf('%0.3f',R2_1_test(i)) sprintf('%0.3f',sumres_1_test(i)) sprintf('%0.3f',SSR_1_test(i)) sprintf('%0.3f',minC6(i)) sprintf('%0.3f',C6_1_test(i)) sprintf('%0.3f',maxC6(i)) sprintf('%0.3f',minC9(i)) sprintf('%0.3f',C9_1_test(i)) sprintf('%0.3f',maxC9(i)) sprintf('%0.3f',minC12(i)) sprintf('%0.3f',C12_1_test(i)) sprintf('%0.3f',maxC12(i)) sprintf('%0.3f',minC15(i)) sprintf('%0.3f',C15_1_test(i)) sprintf('%0.3f',maxC15(i)) sprintf('%0.3f',minC18(i)) sprintf('%0.3f',C18_1_test(i)) sprintf('%0.3f',maxC18(i)) sprintf('%0.3f',minC21(i)) sprintf('%0.3f',C21_1_test(i)) sprintf('%0.3f',maxC21(i)) sprintf('%0.3f',minC24(i)) sprintf('%0.3f',C24_1_test(i)) sprintf('%0.3f',maxC24(i))};
+  forxls(1+i,2:30)={sprintf('%0.3f',k(i,1)) sprintf('%0.3f',k(i,2)) sprintf('%0.3f',a_1(i,1)) sprintf('%0.3f',a_1(i,2)) length(se1t) sprintf('%0.3f',sse_1(i)) sprintf('%0.3f',R2_1(i)) sprintf('%0.3f',sumres_1(i)) sprintf('%0.3f',minC6(i)) sprintf('%0.3f',C6_1(i)) sprintf('%0.3f',maxC6(i)) sprintf('%0.3f',minC9(i)) sprintf('%0.3f',C9_1(i)) sprintf('%0.3f',maxC9(i)) sprintf('%0.3f',minC12(i)) sprintf('%0.3f',C12_1(i)) sprintf('%0.3f',maxC12(i)) sprintf('%0.3f',minC15(i)) sprintf('%0.3f',C15_1(i)) sprintf('%0.3f',maxC15(i)) sprintf('%0.3f',minC18(i)) sprintf('%0.3f',C18_1(i)) sprintf('%0.3f',maxC18(i)) sprintf('%0.3f',minC21(i)) sprintf('%0.3f',C21_1(i)) sprintf('%0.3f',maxC21(i)) sprintf('%0.3f',minC24(i)) sprintf('%0.3f',C24_1(i)) sprintf('%0.3f',maxC24(i))};
+  forxls(6+i,2:30)={sprintf('%0.3f',k(i,1)) sprintf('%0.3f',k(i,2)) sprintf('%0.3f',a_1(i,1)) sprintf('%0.3f',a_1(i,2)) length(se1t) sprintf('%0.3f',sse_1_test(i)) sprintf('%0.3f',R2_1_test(i)) sprintf('%0.3f',sumres_1_test(i)) sprintf('%0.3f',minC6(i)) sprintf('%0.3f',C6_1_test(i)) sprintf('%0.3f',maxC6(i)) sprintf('%0.3f',minC9(i)) sprintf('%0.3f',C9_1_test(i)) sprintf('%0.3f',maxC9(i)) sprintf('%0.3f',minC12(i)) sprintf('%0.3f',C12_1_test(i)) sprintf('%0.3f',maxC12(i)) sprintf('%0.3f',minC15(i)) sprintf('%0.3f',C15_1_test(i)) sprintf('%0.3f',maxC15(i)) sprintf('%0.3f',minC18(i)) sprintf('%0.3f',C18_1_test(i)) sprintf('%0.3f',maxC18(i)) sprintf('%0.3f',minC21(i)) sprintf('%0.3f',C21_1_test(i)) sprintf('%0.3f',maxC21(i)) sprintf('%0.3f',minC24(i)) sprintf('%0.3f',C24_1_test(i)) sprintf('%0.3f',maxC24(i))};
  end
 
  xlswrite(output_filenames.results,forxls,'A1:AE11');
