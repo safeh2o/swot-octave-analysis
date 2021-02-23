@@ -86,8 +86,8 @@ if strcmp(inputFileExt,'.xlsx')
 else
   fid=fopen(filein,'rt');
   temp=csvread(filein);
-  headercell=textscan(fid,'%s',size(temp,2),'Delimiter',',');
-  header=cell2mat(headercell);
+  headerline = fgetl(fid);
+  header=strsplit(headerline,',');
 end
   
 timecol1=find(strcmp(header,cols.ts_datetime));
@@ -100,81 +100,49 @@ frccol2=find(strcmp(header,'hh_frc1'));
 if isempty(frccol2)
   frccol2=find(strcmp(header,cols.hh_frc));
 end
+condcol=find(strcmp(header,cols.ts_cond));
+tempcol=find(strcmp(header,cols.ts_wattemp));
 
 % excel file
 if strcmp(inputFileExt,'.xlsx')
   fprintf(2, "Warning: .xlsx formats must have one datetime format");
-  data1=strdata(2:end,timecol1);
-  data2=[alldata{2:end,frccol1}]';
-  data3=strdata(2:end,timecol2);
-  data4=[alldata{2:end,frccol2}]';
-  if isempty(data1)
-    data1=[alldata{2:end,timecol1}]';
+  fprintf(2, "Warning: Discontinued support for xlsx, please re-run with csv for more accurate results");
+  tstimedata=strdata(2:end,timecol1);
+  tsfrcdata=[alldata{2:end,frccol1}]';
+  hhtimedata=strdata(2:end,timecol2);
+  hhfrcdata=[alldata{2:end,frccol2}]';
+  if isempty(tstimedata)
+    tstimedata=[alldata{2:end,timecol1}]';
   end
-  if isempty(data3)
-    data3=[alldata{2:end,timecol2}]';
+  if isempty(hhtimedata)
+    hhtimedata=[alldata{2:end,timecol2}]';
   end
 % csv file
 else
-##  if temp(2,1)<3000
-##    fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
-##  else
-##    fmt = [repmat('%*s',1,timecol1-1) '%f' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%f' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
-##  end
   fmt = [repmat('%*s',1,timecol1-1) '%s' repmat('%*s',1,frccol1-timecol1-1) '%f' repmat('%*s',1,timecol2-frccol1-1) '%s' repmat('%*s',1,frccol2-timecol2-1) '%f%[^\n]'];
-  alldata=textscan(fid,fmt,'Delimiter',',','EndOfLine','\n');
 
-  data1=alldata{1};
-  data2=alldata{2};
-  data3=alldata{3};
-  data4=alldata{4};
+  alldata = parse_csv(filein);
+  tstimedata=alldata{timecol1};
+  hhtimedata=alldata{timecol2};
+  tsfrcdata=alldata{frccol1};
+  hhfrcdata=alldata{frccol2};
+  conddata=alldata{condcol};
+  tempdata=alldata{tempcol};
+  cell2doubles = @(x) str2num(x);
+  tsfrcdata=cellfun(cell2doubles,tsfrcdata)';
+  hhfrcdata=cellfun(cell2doubles,hhfrcdata)';
   
 
-  se1tfull=parse_dates(data1);
-  se2tfull=parse_dates(data3);
+  [se1tfull,~] = parse_dates(tstimedata);
+  [se2tfull,~] = parse_dates(hhtimedata);
   
-##  if isa(data1,'float')
-##    if data1(1)<4000
-##      data1(1)=data1(1)+40000;
-##    end
-##  end
   fclose(fid);
 end
   
-  
-##for i=1:size(data1,1)
-##  if isa(data1,'float')
-##    se1tfull(i)=data1(i)*24;
-##  else  
-##    if ~isempty(data1{i})
-##      timestart=find(data1{i}=='T');
-##      hr=str2num(data1{i}(timestart+1:timestart+2));
-##      minute=str2num(data1{i}(timestart+4:timestart+5));
-##      second=str2num(data1{i}(timestart+7:timestart+8));
-##      se1tfull(i)=hr+minute/60+second/3600; 
-##    else
-##      se1tfull(i)=-1;
-##    end
-##  end
-##  
-##  if isa(data3,'float')
-##    se2tfull(i)=data3(i)*24;
-##  else  
-##    if ~isempty(data3{i})
-##      timestart=find(data3{i}=='T');
-##      hr=str2num(data3{i}(timestart+1:timestart+2));
-##      minute=str2num(data3{i}(timestart+4:timestart+5));
-##      second=str2num(data3{i}(timestart+7:timestart+8));
-##      se2tfull(i)=hr+minute/60+second/3600;
-##    else
-##      se2tfull(i)=-1;
-##    end
-##  end
-##end
 
 
-se1f=data2;
-se2f=data4;
+se1f=tsfrcdata;
+se2f=hhfrcdata;
 se1tfull=se1tfull';
 se2tfull=se2tfull';
 
@@ -207,7 +175,8 @@ rules = addrule(rules, 'Household FRC is greater than tapstand by 0.03', strjoin
 rules = addrule(rules, 'Household FRC is less than 0', cols.hh_frc, se2f<0);
 rules = addrule(rules, 'Invalid tapstand date/time', cols.ts_datetime, se1tfull<0);
 rules = addrule(rules, 'Invalid household date/time', cols.hh_datetime, se2tfull<0);
-rules = addrule(rules, 'Invalid tapstand to household time difference', strjoin({cols.ts_datetime, cols.hh_datetime}, ','), se2t<=0 | isnan(se2t));
+rules = addrule(rules, 'Difference between tapstand and household times is over a year', strjoin({cols.ts_datetime, cols.hh_datetime}, ','), se2t>8760);
+rules = addrule(rules, 'Tapstand time is erroneously after household time difference', strjoin({cols.ts_datetime, cols.hh_datetime}, ','), se2t<=0 | isnan(se2t));
 rules = addrule(rules, 'Invalid tapstand FRC', cols.ts_frc, isnan(se1f));
 rules = addrule(rules, 'Invalid household FRC', cols.hh_frc, isnan(se2f));
 
@@ -221,19 +190,19 @@ for i = 1:length(rules)
 endfor
 fclose(fp_ruleset);
 
-%save skipped rows in a separate container
-
+% get indices of rows that are erroneous
 skipped_rows_indices = find(bad==1);
 skipped_rows = {};
 
 if strcmp(inputFileExt, '.csv')
   for i = 1:length(skipped_rows_indices)
     idx = skipped_rows_indices(i);
-    time1 = data1{idx};
-    time2 = data3{idx};
-    frc1 = data2(idx);
-    frc2 = data4(idx);
-    [cond, temp] = strsplit(alldata{5}{idx}, ','){:};
+    time1 = tstimedata{idx};
+    time2 = hhtimedata{idx};
+    frc1 = tsfrcdata(idx);
+    frc2 = hhfrcdata(idx);
+    cond = conddata{idx};
+    temp = tempdata{idx};
     reason = '';
     for j = 1:length(rules)
       if (rules(j).matches(idx))
@@ -241,7 +210,7 @@ if strcmp(inputFileExt, '.csv')
         break;
       endif
     endfor
-    skipped_rows(i,:) = {time1, frc1, time2, frc2, cond, temp, reason};
+    skipped_rows(end+1,:) = {time1, frc1, time2, frc2, cond, temp, reason};
   endfor
 
   headers = {cols.ts_datetime, cols.ts_frc, cols.hh_datetime, cols.hh_frc, cols.ts_cond, cols.ts_wattemp, "reason"};
@@ -459,14 +428,7 @@ end
  xlabelposition=get(h,'position');
  yposition=xlabelposition(2)+1;
  yposition=repmat(yposition,length(xtick),1);
-## set(gca,'xtick',[]);
- 
-## hnew=text(xtick,yposition,xticklabel);
-## set(hnew,'rotation',90,'horizontalalignment','right');
  xlh=xlabel('Elapsed Time (hr)');
-## xlhpos=get(xlh,'Position');
-## xlhpos(2)=xlhpos(2)-1.5;
-## set(xlh,'Position',xlhpos);
  ylabel('Number of samples');
  title(sprintf('SWOT Engineering Optimization Model - Histogram of Elapsed Sample Times\nDataset: %s\nCode Version: %s',inputFileName,version),'FontSize',10);
  hold off;
