@@ -1,4 +1,4 @@
-[![Build Status](https://dev.azure.com/dighr-swot/SWOT/_apis/build/status/dighr.swot-octave-analysis?branchName=master)](https://dev.azure.com/dighr-swot/SWOT/_build/latest?definitionId=3&branchName=master)
+[![Build Status](https://dev.azure.com/safeh2o/SWOT/_apis/build/status/dighr.swot-octave-analysis?branchName=master)](https://dev.azure.com/safeh2o/SWOT/_build/latest?definitionId=3&branchName=master)
 
 # swot-octave-analysis
 Repo for SWOT engineering optimization analytics in GNU Octave.
