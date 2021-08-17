@@ -1,6 +1,9 @@
-function [output_filenames,reco]=engmodel(filein,output,varargin)
+function [output_filenames,reco]=engmodel(filein,output,scenario,inputtime,varargin)
 %Engineering Optimization Model for SWOT
 %Saad Ali
+
+%Version 1.7
+%-moved scenario and optimization time to function arguments
 
 %Version 1.6
 %-limited results.xlsx outputs to 3 decimal places
@@ -44,7 +47,7 @@ clc
 format long
 pkg load statistics
 pkg load io
-version='1.6';
+version='1.7';
 
 if nargin==0
     sprintf('Require input file path')
@@ -74,10 +77,10 @@ cols.ts_cond = 'ts_cond';
 cols.ts_wattemp = 'ts_wattemp';
 
 
-%scan input filename for time and decay scenario
-underscores=strfind(inputFileName,"__");
-inputtime=str2num(inputFileName(underscores(end-1)+2:underscores(end)-1));
-scenario=inputFileName(underscores(end)+2:end);
+%parse time and decay scenario
+if ~strcmp(class(inputtime), "double")
+  inputtime=str2num(inputtime);
+endif
 
 if strcmp(inputFileExt,'.xlsx')
   [numdata strdata alldata]=xlsread(filein);
@@ -528,7 +531,7 @@ end
  close all
  
  forxls=cell(11,30);
- forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName(1:underscores(1)-1),version),'Initial guess for k','Initial guess for n','k','n','Number of points used','SSE','R2','Sum of residuals','Minimum C(t=6h)','Optimum C(t=6h)','Maximum C(t=6h)','Minimum C(t=9h)','Optimum C(t=9h)','Maximum C(t=9h)','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=18h)','Optimum C(t=18h)','Maximum C(t=18h)','Minimum C(t=21h)','Optimum C(t=21h)','Maximum C(t=21h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
+ forxls(1,:)={sprintf('Dataset: %s\nCode Version: %s',inputFileName,version),'Initial guess for k','Initial guess for n','k','n','Number of points used','SSE','R2','Sum of residuals','Minimum C(t=6h)','Optimum C(t=6h)','Maximum C(t=6h)','Minimum C(t=9h)','Optimum C(t=9h)','Maximum C(t=9h)','Minimum C(t=12h)','Optimum C(t=12h)','Maximum C(t=12h)','Minimum C(t=15h)','Optimum C(t=15h)','Maximum C(t=15h)','Minimum C(t=18h)','Optimum C(t=18h)','Maximum C(t=18h)','Minimum C(t=21h)','Optimum C(t=21h)','Maximum C(t=21h)','Minimum C(t=24h)','Optimum C(t=24h)','Maximum C(t=24h)'};
  forxls(2)={'90% Training Set'};
  forxls(7)={'10% Test Set'};
  for i=1:5
@@ -555,11 +558,11 @@ end
 %!  not_empty = dinfo.bytes > 0;
 %!endfunction
 %!
-%!function test_case(input)
+%!function test_case(input, scenario, inputtime)
 %!  EXPECTED_OUTPUT_FILE_COUNT = 6;
 %!  outputdirname = tempname();
 %!  mkdir(outputdirname);
-%!  outputs = engmodel(input, outputdirname);
+%!  outputs = engmodel(input, outputdirname, scenario, inputtime);
 %!  output_fields = fieldnames(outputs);
 %!  assert (length(output_fields) == EXPECTED_OUTPUT_FILE_COUNT)
 %!  for i = 1:length(output_fields)
@@ -577,13 +580,13 @@ end
 %!endfunction
 %!
 %!test1
-%!  test_case('tests/ds1__UjW__test1__20191231__6__minDecay.csv')
+%!  test_case('tests/ds1.csv', 'minDecay', 6)
 %!test2
-%!  test_case('tests/ds2__YPSl__test2__20191231__9__optimumDecay.csv')
+%!  test_case('tests/ds2.csv', 'optimumDecay', 9)
 %!test3
-%!  test_case('tests/ds3__Gcr__test3__20191231__12__maxDecay.csv')
+%!  test_case('tests/ds3.csv', 'maxDecay', 12)
 %!test4
-%!  test_case('tests/ds4__dPBf__test4__20191231__15__optimumDecay.csv')
+%!  test_case('tests/ds4.csv', 'optimumDecay', 15)
 %!test5
-%!  test_case('tests/ds5__3ZiW__test5__20191231__18__minDecay.csv')
+%!  test_case('tests/ds5.csv', 'minDecay', 18)
 %!
