@@ -43,21 +43,21 @@ function [output_filenames,reco]=engmodel(filein,output,scenario,inputtime,varar
 %-changed target FRC at household from 0.2 to 0.3 mg/L
 %-added in success rate on empirical backcheck graph
 
-clc
-format long
-pkg load statistics
-pkg load io
+clc;
+format long;
+pkg load statistics;
+pkg load io;
 version='1.7';
 
 if nargin==0
     sprintf('Require input file path')
-    return
+    return;
 end
 if nargin<2
   output='Output';
 end
 
-[inputFileDir, inputFileName, inputFileExt] = fileparts(filein)
+[inputFileDir, inputFileName, inputFileExt] = fileparts(filein);
 % Specify dictionary containing all output file names to test for their existence
 output_filenames = struct();
 output_filenames.results = sprintf('%s/%s_Results.xlsx',output,inputFileName);
@@ -66,6 +66,7 @@ output_filenames.contour = sprintf('%s/%s_Contour.png',output,inputFileName);
 output_filenames.histo = sprintf('%s/%s_Histogram.png',output,inputFileName);
 output_filenames.skipped = sprintf('%s/%s_SkippedRows.csv',output,inputFileName);
 output_filenames.ruleset = sprintf('%s/%s_Ruleset.csv',output,inputFileName);
+output_filenames.json = sprintf('%s/%s_Data.json',output,inputFileName);
 
 % Specify column names expected in CSV file in a struct
 cols = struct();
@@ -75,6 +76,9 @@ cols.hh_datetime = 'hh_datetime';
 cols.hh_frc = 'hh_frc';
 cols.ts_cond = 'ts_cond';
 cols.ts_wattemp = 'ts_wattemp';
+
+% Declare struct variable to keep output for JSON
+jsonobject = struct();
 
 
 %parse time and decay scenario
@@ -483,7 +487,7 @@ end
   prpercent3=pr6/pr5*100;
  else
   prpercent3=0;
- end
+ endif
   
  h=figure;
  hold on
@@ -510,7 +514,9 @@ end
     plot([Cin_1(ii)-0.1 Cin_1(ii)-0.1], [0 maxFRC],'g--')
     plot([Cin_1(ii)+0.1 Cin_1(ii)+0.1], [0 maxFRC],'g--','HandleVisibility','off')
     reco=Cin_1(ii);
-  end
+  endif
+  
+  jsonobj.reco = reco;
  
   plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
   text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
@@ -521,10 +527,10 @@ end
     lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Maximum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',max(Cin_good)-0.1,max(Cin_good)+0.1,pr2,pr1,prpercent),'Location', 'NorthWest');
   else
     lgd2=legend(sprintf('Existing Guidelines, 0.2 - 0.5 mg/L, %d of %d, %2.1f%% household water safety success rate',ex2,ex1,expercent),sprintf('Proposed Guidelines Optimum, %1.2f - %1.2f mg/L, %d of %d, %2.1f%% household water safety success rate',Cin_1(ii)-0.1,Cin_1(ii)+0.1,pr4,pr3,prpercent2),'Location', 'NorthWest');
-  end
+  endif
   set(lgd2,'FontSize',8);
   grid on
- end
+ endif
 
  hold off
  saveas (gcf,output_filenames.backcheck)
@@ -540,13 +546,16 @@ end
  end
 
  xlswrite(output_filenames.results,forxls,'A1:AE11');
-end
+ jsonfp = fopen(output_filenames.json, "w");
+ fputs(jsonfp, object2json(jsonobj));
+ fclose(jsonfp);
+endfunction
 
 %looking at SSE for all points
 function SSE=fun(a,t,f,f0,w)
 fpred=(f0.^(1-a(2))+(a(2)-1)*a(1)*t).^(1/(1-a(2)));
 SSE=sum(w.*((f-fpred).^2));
-end
+endfunction
 
 
 %!function found = file_found(path)
@@ -559,7 +568,7 @@ end
 %!endfunction
 %!
 %!function test_case(input, scenario, inputtime)
-%!  EXPECTED_OUTPUT_FILE_COUNT = 6;
+%!  EXPECTED_OUTPUT_FILE_COUNT = 7;
 %!  outputdirname = tempname();
 %!  mkdir(outputdirname);
 %!  outputs = engmodel(input, outputdirname, scenario, inputtime);
@@ -570,11 +579,11 @@ end
 %!    output_filename = getfield(outputs, output_fieldname);
 %!    if (file_found(output_filename) == false)
 %!      error ("file not found, expected %s", output_filename);
-%!    end
+%!    endif
 %!    if (file_not_empty(output_filename) == false)
 %!      error ("file not empty, expected %s", output_filename);
-%!    end
-%!  end
+%!    endif
+%!  endfor
 %!  confirm_recursive_rmdir(0, "local");
 %!  rmdir(outputdirname, "s");
 %!endfunction
