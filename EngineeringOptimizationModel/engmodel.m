@@ -516,7 +516,7 @@ end
     reco=Cin_1(ii);
   endif
   
-  jsonobj.reco = reco;
+  jsonobject.reco = reco;
  
   plot([0 maxFRC],[0.2 0.2],'k--','HandleVisibility','off')
   text(maxFRC*0.65,0.12,'Household Water Safety Threshold = 0.2 mg/L','FontSize',8)
@@ -547,7 +547,7 @@ end
 
  xlswrite(output_filenames.results,forxls,'A1:AE11');
  jsonfp = fopen(output_filenames.json, "w");
- fputs(jsonfp, object2json(jsonobj));
+ fputs(jsonfp, object2json(jsonobject));
  fclose(jsonfp);
 endfunction
 
