@@ -3,6 +3,11 @@
 # swot-octave-analysis
 Repo for SWOT engineering optimization analytics in GNU Octave.
 
+Version 1.7
+-instead of specifying scenario and input time in filename, specify as parameters
+-output json file containing final results, currently just FRC recommendation
+-adjusted tests to accommodate the above
+
 Version 1.6
 -limited results.xlsx outputs to 3 decimal places
 -created new histogram output to show elapsed time for each samples
